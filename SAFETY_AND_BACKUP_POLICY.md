@@ -8,11 +8,13 @@ Never permanently delete directly from:
 ~/.codex
 ```
 
-All cleanup actions must first create a restorable Trash Bin item under:
+All cleanup actions must first create a restorable Trash Bin item under the active application-data directory:
 
 ```text
-<app-folder>/trash-bin
+<application-data>/trash-bin
 ```
+
+The standalone macOS app uses `~/Library/Application Support/Clean My Codex`. The source launcher uses the checked-out application folder unless configured otherwise. Existing source-launcher data is not migrated automatically; restore it with the source launcher until an explicit migration workflow is selected.
 
 Permanent delete is allowed only inside `trash-bin`.
 
@@ -63,6 +65,10 @@ Each item includes:
 Deleting a project from Codex removes Codex references and all related Codex chats for that path.
 
 It does not delete the actual project folder from `Documents`.
+
+## Operation Lifecycle Safety
+
+The native app does not stop its service while a confirmed cleanup, restore, permanent-delete, report, or relocation request holds the operation lock. Quit sends an authenticated shutdown request, waits for the active operation to finish or roll back, rejects new mutations, and only then allows macOS termination to continue.
 
 ## Restore Safety
 

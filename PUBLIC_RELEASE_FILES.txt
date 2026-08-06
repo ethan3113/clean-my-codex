@@ -24,6 +24,16 @@ TRASH_BIN_SYSTEM.md
 Clean My Codex.command
 run.command
 run.py
+requirements-macos-build.txt
+
+# Native macOS application
+macos/AppIconGenerator.m
+macos/CleanMyCodexApp/main.m
+macos/Info.plist
+script/build_and_run.sh
+script/build_macos_app.sh
+script/macos_bundle_minimum.py
+script/package_icns.py
 
 # Python application
 clean_my_codex/__init__.py
@@ -45,6 +55,7 @@ scripts/build_release.py
 # Tests
 tests/test_core_operations.py
 tests/test_folder_cleaner.py
+tests/test_macos_packaging.py
 tests/test_product_metadata.py
 tests/test_release_packaging.py
 tests/test_server_integration.py

@@ -11,13 +11,21 @@ Contributions are welcome when they preserve the app's narrow purpose and revers
 
 ## Development
 
-Clean My Codex requires Python 3.10 or newer and uses no third-party runtime packages.
+The source launcher requires Python 3.10 or newer and uses no third-party runtime packages. Building the standalone macOS app additionally requires the pinned PyInstaller build dependency and Apple Command Line Tools.
 
 ```bash
 python3 -m unittest discover -s tests
-python3 -m py_compile clean_my_codex/*.py scripts/*.py
+python3 -m py_compile clean_my_codex/*.py scripts/*.py script/*.py
 node --check static/app.js
 python3 scripts/build_release.py --output-dir release
+```
+
+For a standalone app build:
+
+```bash
+python3 -m venv build/pyinstaller-venv
+build/pyinstaller-venv/bin/python -m pip install -r requirements-macos-build.txt
+PYINSTALLER_PYTHON="$PWD/build/pyinstaller-venv/bin/python" ./script/build_macos_app.sh
 ```
 
 ## Pull Requests

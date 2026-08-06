@@ -20,6 +20,19 @@
 - [ ] Bare `/api/health` exposes no capability or filesystem path and data APIs reject missing tokens.
 - [ ] Restore stops when protected metadata changed after deletion.
 
+## macOS App
+
+- [ ] Build `Clean My Codex.app` with the pinned packaging requirement.
+- [ ] Verify the app opens through LaunchServices without a Terminal window.
+- [ ] Verify Quit stops the bundled loopback service and removes temporary session files.
+- [ ] Verify Quit waits for a blocked synthetic mutation to complete before the service exits.
+- [ ] Confirm the app contains CPython and PyInstaller license texts.
+- [ ] Confirm `LSMinimumSystemVersion` equals the highest deployment target among all bundled Mach-O files.
+- [ ] Audit every bundled executable, dynamic library, resource, and documentation file.
+- [ ] Sign with a Developer ID Application identity and enable hardened runtime.
+- [ ] Notarize the final archive and staple the ticket before publishing it.
+- [ ] Verify Gatekeeper acceptance on a clean macOS account.
+
 ## Package
 
 - [ ] Build with `python3 scripts/build_release.py --output-dir release --replace`.
@@ -39,3 +52,4 @@
 - [ ] Push after reviewing the commit.
 - [ ] Create and verify the release tag `v<version>`.
 - [ ] Attach the audited ZIP plus SHA-256 file to the GitHub release created from that tag.
+- [ ] Attach the signed and notarized macOS app archive only after the separate app audit passes.

@@ -2,6 +2,16 @@
 
 Clean My Codex includes bundled SVG icon geometry derived from [Lucide](https://github.com/lucide-icons/lucide). The project does not load icon code from a network service.
 
+Standalone macOS builds also contain a CPython runtime and a PyInstaller bootloader. The build copies their complete license texts into the application at `Contents/Resources/Documentation/PYTHON_LICENSE.txt` and `Contents/Resources/Documentation/PYINSTALLER_COPYING.txt`.
+
+## CPython
+
+CPython is distributed under the Python Software Foundation License and historical component licenses. See `PYTHON_LICENSE.txt` inside the standalone application for the complete terms corresponding to the bundled interpreter.
+
+## PyInstaller
+
+PyInstaller is licensed under GPL-2.0-or-later with its bootloader exception, which permits distributing applications built with PyInstaller. See `PYINSTALLER_COPYING.txt` inside the standalone application for the complete terms corresponding to the bundled bootloader.
+
 ## Lucide
 
 ISC License

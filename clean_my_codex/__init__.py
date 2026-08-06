@@ -1,7 +1,7 @@
 """Tools for inspecting and safely maintaining Codex workspace state."""
 
 APP_NAME = "Clean My Codex"
-APP_VERSION = "0.1.0"
+APP_VERSION = "0.2.0"
 CREATOR_NAME = "ENVOCS Studio"
 CREATOR_URL = "https://github.com/ethan3113"
 REPOSITORY_URL = "https://github.com/ethan3113/clean-my-codex"

@@ -26,7 +26,7 @@ jobs:
       - name: Test Python
         run: python -m unittest discover -s tests
       - name: Compile Python
-        run: python -m py_compile clean_my_codex/*.py scripts/*.py
+        run: python -m py_compile clean_my_codex/*.py scripts/*.py script/*.py
       - name: Check JavaScript
         run: node --check static/app.js
       - name: Build and audit release

@@ -8,7 +8,7 @@ Every destructive workflow follows the same model:
 Preview -> Confirm -> Trash Bin -> Restore or Permanently Delete
 ```
 
-Version `0.1.0`  
+Version `0.2.0`
 Created by [ENVOCS Studio](https://github.com/ethan3113)
 
 > Clean My Codex is an independent open-source project. It is not affiliated with, endorsed by, or supported by OpenAI.
@@ -16,12 +16,25 @@ Created by [ENVOCS Studio](https://github.com/ethan3113)
 ## Requirements
 
 - macOS
-- Python 3.10 or newer
 - Codex with a data directory at `~/.codex`
 
-No package installation is required. The app uses the Python standard library and bundled static assets.
+The standalone app bundles its runtime, so opening it does not require Python, a Terminal window, or package installation. Its architecture follows the Python used for packaging. The build scans every bundled Mach-O and records the true minimum macOS version in the final app. The source launcher remains available and requires Python 3.10 or newer.
 
-## Start
+## Open the macOS App
+
+Open `Clean My Codex.app` like any other macOS application. It creates its writable Trash Bin, operation logs, and reports under:
+
+```text
+~/Library/Application Support/Clean My Codex
+```
+
+The interface and service are contained inside the application bundle. Closing the app requests an authenticated graceful shutdown; if a confirmed operation is active, macOS waits for it to finish or roll back before stopping the loopback service.
+
+Existing Trash Bin data created by the source launcher remains in the checkout and is not copied or moved automatically. Use the source launcher to restore those older items. New native-app operations use Application Support.
+
+Development builds are ad hoc signed for same-machine testing. A downloadable public build must be Developer ID signed and notarized before release.
+
+## Source Launcher
 
 After cloning the repository, either double-click `Clean My Codex.command` or run:
 
@@ -30,7 +43,7 @@ cd clean-my-codex
 ./run.command
 ```
 
-The launcher opens a protected session at `http://127.0.0.1:8765`. Keep the Terminal window open while using it. Open the app through the launcher rather than a saved browser URL; each launch uses a new session capability.
+The source launcher opens a protected session at `http://127.0.0.1:8765`. Keep its Terminal window open while using it. Open the interface through the launcher rather than a saved browser URL; each launch uses a new session capability.
 
 To choose another Codex data directory or port while keeping the protected launcher flow:
 
@@ -93,10 +106,20 @@ Run the complete verification suite:
 
 ```bash
 python3 -m unittest discover -s tests
-python3 -m py_compile clean_my_codex/*.py scripts/*.py
+python3 -m py_compile clean_my_codex/*.py scripts/*.py script/*.py
 node --check static/app.js
 python3 scripts/build_release.py --output-dir release --replace
 ```
+
+Build the standalone macOS app with an isolated build environment:
+
+```bash
+python3 -m venv build/pyinstaller-venv
+build/pyinstaller-venv/bin/python -m pip install -r requirements-macos-build.txt
+PYINSTALLER_PYTHON="$PWD/build/pyinstaller-venv/bin/python" ./script/build_macos_app.sh
+```
+
+The generated application is `dist/Clean My Codex.app`. The build uses Apple Command Line Tools, bundles the Python service, generates the app icon, derives the real minimum macOS version from all bundled binaries, validates the bundle, and applies an ad hoc development signature. Signing and notarization for public distribution are separate release steps.
 
 The release builder copies only files listed in `PUBLIC_RELEASE_FILES.txt`. It rejects symbolic links, unsafe versions, runtime folders, database and session formats, machine paths, email addresses, UUID-like session identifiers, and common credential patterns before creating the archive.
 

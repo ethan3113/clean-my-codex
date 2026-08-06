@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.0 - 2026-08-06
+
+- Added a standalone macOS application with a native AppKit window, embedded WebKit interface, original app icon, and bundled Python service.
+- Added one-click LaunchServices startup with no Terminal window and automatic service shutdown when the app quits.
+- Separated read-only interface resources from writable application data under Application Support.
+- Added private ephemeral-port handoff, owner-only session files, restricted in-app navigation, and non-persistent WebKit storage.
+- Added reproducible macOS packaging scripts, pinned PyInstaller build requirements, ICNS packaging, ad hoc development signing, and native-app tests.
+- Added bundle-wide Mach-O deployment-target detection so the final app reports its actual minimum macOS requirement.
+- Made the native ready-file handoff atomic and kept existing source-launcher Trash Bin data untouched.
+- Added an authenticated graceful-shutdown handshake so Quit cannot interrupt an active cleanup or relocation operation.
+
 ## 0.1.0 - 2026-08-05
 
 - Established the public product name, package, launcher, repository links, original logo, and issue form for Clean My Codex.
