@@ -37,5 +37,5 @@
 - [ ] Review every staged path explicitly.
 - [ ] Commit the audited source only.
 - [ ] Push after reviewing the commit.
-- [ ] Create and verify a signed tag `v<version>`.
-- [ ] Attach the audited ZIP plus SHA-256 file to the GitHub release created from that verified tag.
+- [ ] Create and verify the release tag `v<version>`.
+- [ ] Attach the audited ZIP plus SHA-256 file to the GitHub release created from that tag.

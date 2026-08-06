@@ -100,7 +100,7 @@ python3 scripts/build_release.py --output-dir release --replace
 
 The release builder copies only files listed in `PUBLIC_RELEASE_FILES.txt`. It rejects symbolic links, unsafe versions, runtime folders, database and session formats, machine paths, email addresses, UUID-like session identifiers, and common credential patterns before creating the archive.
 
-For published releases, verify the ZIP checksum and the repository's signed release tag. A checksum downloaded beside an archive detects transfer errors; the verified tag establishes which source the project published.
+For published releases, verify the ZIP checksum and confirm that the GitHub release points to the expected version tag. A checksum downloaded beside an archive detects transfer errors; the tag identifies the source commit the project published.
 
 ## Report an Issue
 
