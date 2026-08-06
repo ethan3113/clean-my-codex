@@ -1,0 +1,50 @@
+# GitHub metadata
+.github/ISSUE_TEMPLATE/bug_report.yml
+.github/ISSUE_TEMPLATE/config.yml
+.github/pull_request_template.md
+.github/workflows/ci.yml
+.gitignore
+
+# Product and governance
+CHANGELOG.md
+CODEX_DATA_FORMATS.md
+CONTRIBUTING.md
+DESIGN.md
+LICENSE
+PRODUCT.md
+PUBLIC_RELEASE_FILES.txt
+README.md
+RELEASE_CHECKLIST.md
+SAFETY_AND_BACKUP_POLICY.md
+SECURITY.md
+THIRD_PARTY_NOTICES.md
+TRASH_BIN_SYSTEM.md
+
+# Launchers
+Clean My Codex.command
+run.command
+run.py
+
+# Python application
+clean_my_codex/__init__.py
+clean_my_codex/__main__.py
+clean_my_codex/core.py
+clean_my_codex/server.py
+
+# Browser interface
+static/app.js
+static/index.html
+static/logo.svg
+static/styles.css
+
+# Release tools
+scripts/__init__.py
+scripts/audit_release.py
+scripts/build_release.py
+
+# Tests
+tests/test_core_operations.py
+tests/test_folder_cleaner.py
+tests/test_product_metadata.py
+tests/test_release_packaging.py
+tests/test_server_integration.py

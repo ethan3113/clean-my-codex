@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-labelledby="logo-title">
+  <title id="logo-title">Clean My Codex</title>
+  <rect x="0.75" y="0.75" width="30.5" height="30.5" rx="6.25" fill="#0a0a0a" stroke="#3a3a3a" stroke-width="1.5"/>
+  <rect x="7.5" y="8" width="6.5" height="6.5" rx="1.25" fill="#ededed"/>
+  <rect x="17.5" y="8" width="7" height="6.5" rx="1.25" fill="#ededed" fill-opacity="0.42"/>
+  <rect x="7.5" y="18" width="6.5" height="6" rx="1.25" fill="#ededed" fill-opacity="0.42"/>
+  <path d="M24 18.75v2.5A2.75 2.75 0 0 1 21.25 24H17.5m2.25-2.25L17.5 24l2.25 2.25" fill="none" stroke="#ededed" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

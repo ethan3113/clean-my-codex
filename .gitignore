@@ -1,0 +1,51 @@
+# Operating-system and Python output
+.DS_Store
+.clean-my-codex-session
+.clean-my-codex-launch.html
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Editors and environment files
+.idea/
+.vscode/
+.env
+.env.*
+config.toml
+.codex-global-state.json
+session_index.jsonl
+.venv/
+venv/
+
+# Runtime output. These folders may contain Codex workspace metadata.
+backups/
+codex-archive/
+operation-logs/
+purge-backups/
+trash/
+trash-bin/
+
+# Machine-specific discovery output.
+CODEX_DATA_STRUCTURE_REPORT.md
+CODEX_FOLDER_CLEANLINESS_REPORT.md
+
+# Runtime and credential-bearing formats must never enter the repository.
+auth.json
+*.sqlite
+*.sqlite-*
+*.sqlite.*
+*.db
+*.db-*
+*.db.*
+*.jsonl
+*.pem
+*.key
+
+# Generated release artifacts and design-tool state.
+release/
+build/
+dist/
+.impeccable/

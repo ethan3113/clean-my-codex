@@ -1,0 +1,63 @@
+name: Bug report
+description: Report a reproducible problem in Clean My Codex
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Problem
+      description: Describe what went wrong and where it happened.
+      placeholder: A concise description of the issue.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: List the smallest sequence that reproduces the problem.
+      placeholder: |
+        1. Open ...
+        2. Select ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+      description: Describe what should have happened.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Chat Manager
+        - Missing Paths
+        - Relocation Manager
+        - Folder Cleaner
+        - Trash Bin
+        - Operation Logs
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      placeholder: v0.1.0
+  - type: textarea
+    id: context
+    attributes:
+      label: Supporting material
+      description: Add redacted screenshots only when needed. Do not include credentials, tokens, chat content, workspace paths, operation logs, JSONL files, or SQLite databases.
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check
+      options:
+        - label: I removed credentials, tokens, chat content, identifying paths, logs, JSONL data, and database content from this report.
+          required: true

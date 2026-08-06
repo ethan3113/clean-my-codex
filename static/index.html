@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="color-scheme" content="dark" />
+    <title>Clean My Codex</title>
+    <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <!--
+      VISUAL CONTRACT
+      THESIS: Codex maintenance is a calm inspection workflow, not a warning wall; the interface refuses stacked status chips and repeated destructive buttons.
+      OWN-WORLD: Near-black surfaces, crisp neutral borders, compact Geist-like typography, semantic mini status icons, dense master-detail workspaces, white primary commands, and red reserved for confirmed destructive contexts.
+      STORY: Scan the active data, understand one item, choose a safe next step, preview exact impact, then confirm or restore.
+      FIRST VIEWPORT: Slim navigation, compact page header, one filter row, a scannable working list, and a contextual inspector with progressive disclosure.
+      FORM: Assigned surface structure 5, seed 59fdee10; compact operations console.
+      FINISH: No stacked cards, no raw JSON by default, no machine-specific paths in public examples, and no color-only status.
+    -->
+    <svg class="icon-sprite" aria-hidden="true">
+      <!-- Lucide icon geometry, bundled so the utility works without a network. -->
+      <symbol id="icon-messages" viewBox="0 0 24 24">
+        <path d="M14 9a2 2 0 0 1-2 2H6l-4 4V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2z" />
+        <path d="M14 9h6a2 2 0 0 1 2 2v10l-4-4h-6a2 2 0 0 1-2-2v-4" />
+      </symbol>
+      <symbol id="icon-folder-search" viewBox="0 0 24 24">
+        <path d="M10 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.66.9H20a2 2 0 0 1 2 2v3" />
+        <circle cx="17" cy="17" r="3" />
+        <path d="m21 21-1.9-1.9" />
+      </symbol>
+      <symbol id="icon-relocate" viewBox="0 0 24 24">
+        <path d="m8 3-4 4 4 4" />
+        <path d="M4 7h16" />
+        <path d="m16 21 4-4-4-4" />
+        <path d="M20 17H4" />
+      </symbol>
+      <symbol id="icon-brush" viewBox="0 0 24 24">
+        <path d="m9.1 11.9 8-8a2 2 0 0 1 2.8 2.8l-8 8" />
+        <path d="M7.1 14.9a3 3 0 0 0-3 3c0 1.3-1 2.4-2 3 1.5.5 3 .5 4.5 0 2.3-.8 3.5-2.2 3.5-4a3 3 0 0 0-3-3z" />
+      </symbol>
+      <symbol id="icon-trash" viewBox="0 0 24 24">
+        <path d="M3 6h18" />
+        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+        <path d="M10 11v6" />
+        <path d="M14 11v6" />
+      </symbol>
+      <symbol id="icon-logs" viewBox="0 0 24 24">
+        <path d="M8 2v4" />
+        <path d="M16 2v4" />
+        <rect width="16" height="18" x="4" y="4" rx="2" />
+        <path d="M8 10h6" />
+        <path d="M8 14h8" />
+        <path d="M8 18h5" />
+      </symbol>
+      <symbol id="icon-refresh" viewBox="0 0 24 24">
+        <path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 4v5h5" />
+        <path d="M4 13a8.1 8.1 0 0 0 15.5 2M20 20v-5h-5" />
+      </symbol>
+      <symbol id="icon-shield" viewBox="0 0 24 24">
+        <path d="M20 13c0 5-3.5 7.5-7.7 8.9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1.2 1.2 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z" />
+        <path d="m9 12 2 2 4-4" />
+      </symbol>
+      <symbol id="icon-eye" viewBox="0 0 24 24">
+        <path d="M2.1 12a10.7 10.7 0 0 1 19.8 0 10.7 10.7 0 0 1-19.8 0" />
+        <circle cx="12" cy="12" r="3" />
+      </symbol>
+      <symbol id="icon-search" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="8" />
+        <path d="m21 21-4.3-4.3" />
+      </symbol>
+      <symbol id="icon-chevron" viewBox="0 0 24 24">
+        <path d="m9 18 6-6-6-6" />
+      </symbol>
+      <symbol id="icon-folder" viewBox="0 0 24 24">
+        <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      </symbol>
+      <symbol id="icon-database" viewBox="0 0 24 24">
+        <ellipse cx="12" cy="5" rx="9" ry="3" />
+        <path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5" />
+        <path d="M3 12c0 1.7 4 3 9 3s9-1.3 9-3" />
+      </symbol>
+      <symbol id="icon-file" viewBox="0 0 24 24">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+        <path d="M14 2v6h6" />
+      </symbol>
+      <symbol id="icon-arrow-up-right" viewBox="0 0 24 24">
+        <path d="M7 17 17 7" />
+        <path d="M7 7h10v10" />
+      </symbol>
+      <symbol id="icon-warning" viewBox="0 0 24 24">
+        <path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3" />
+        <path d="M12 9v4" />
+        <path d="M12 17h.01" />
+      </symbol>
+      <symbol id="icon-bug" viewBox="0 0 24 24">
+        <path d="m8 2 1.9 1.9" />
+        <path d="M14.1 3.9 16 2" />
+        <path d="M9 7.1V6a3 3 0 0 1 6 0v1.1" />
+        <rect width="12" height="14" x="6" y="7" rx="6" />
+        <path d="M3 13h3" />
+        <path d="M18 13h3" />
+        <path d="m4.5 7.5 2.6 2.6" />
+        <path d="m16.9 10.1 2.6-2.6" />
+        <path d="m4.5 18.5 2.6-2.6" />
+        <path d="m16.9 15.9 2.6 2.6" />
+      </symbol>
+      <symbol id="icon-status-ok" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9" />
+        <path d="m8.5 12 2.3 2.3 4.9-5.1" />
+      </symbol>
+      <symbol id="icon-status-warn" viewBox="0 0 24 24">
+        <path d="m12 3 9 16H3z" />
+        <path d="M12 9v4" />
+        <path d="M12 17h.01" />
+      </symbol>
+      <symbol id="icon-status-bad" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9" />
+        <path d="m9 9 6 6" />
+        <path d="m15 9-6 6" />
+      </symbol>
+      <symbol id="icon-status-info" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 11v5" />
+        <path d="M12 8h.01" />
+      </symbol>
+      <symbol id="icon-status-muted" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M9 12h6" />
+      </symbol>
+      <symbol id="icon-status-sync" viewBox="0 0 24 24">
+        <path d="M20 11a8 8 0 0 0-14.8-4.2L3 10" />
+        <path d="M3 5v5h5" />
+        <path d="M4 13a8 8 0 0 0 14.8 4.2L21 14" />
+        <path d="M16 14h5v5" />
+      </symbol>
+    </svg>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <img class="brand-logo" src="/logo.svg" alt="" aria-hidden="true" />
+          <h1 id="app-name">Clean My Codex</h1>
+        </div>
+        <nav class="nav" aria-label="Workspace sections">
+          <button class="nav-item active" data-page="chats" aria-current="page">
+            <svg class="nav-motion nav-motion-chat" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path class="nav-chat-left" d="M14 9a2 2 0 0 1-2 2H6l-4 4V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2z" />
+              <path class="nav-chat-right" d="M14 9h6a2 2 0 0 1 2 2v10l-4-4h-6a2 2 0 0 1-2-2v-4" />
+            </svg>
+            <span>Chat Manager</span>
+          </button>
+          <button class="nav-item" data-page="missing">
+            <svg class="nav-motion nav-motion-missing" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path class="nav-missing-folder" pathLength="1" d="M10 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.66.9H20a2 2 0 0 1 2 2v3" />
+              <g class="nav-missing-search">
+                <circle cx="17" cy="17" r="3" />
+                <path d="m21 21-1.9-1.9" />
+              </g>
+            </svg>
+            <span>Missing Paths</span>
+          </button>
+          <button class="nav-item" data-page="relocation">
+            <svg class="nav-motion nav-motion-relocation" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <g class="nav-relocate-left"><path d="m8 3-4 4 4 4" /><path d="M4 7h16" /></g>
+              <g class="nav-relocate-right"><path d="m16 21 4-4-4-4" /><path d="M20 17H4" /></g>
+            </svg>
+            <span>Relocation Manager</span>
+          </button>
+          <button class="nav-item" data-page="cleaner">
+            <svg class="nav-motion nav-motion-cleaner" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path class="nav-brush-handle" pathLength="1" d="m9.1 11.9 8-8a2 2 0 0 1 2.8 2.8l-8 8" />
+              <path class="nav-brush-head" d="M7.1 14.9a3 3 0 0 0-3 3c0 1.3-1 2.4-2 3 1.5.5 3 .5 4.5 0 2.3-.8 3.5-2.2 3.5-4a3 3 0 0 0-3-3z" />
+            </svg>
+            <span>Folder Cleaner</span>
+          </button>
+          <button class="nav-item" data-page="trashbin">
+            <svg class="nav-motion nav-motion-trash" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <g class="nav-trash-lid"><path d="M3 6h18" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></g>
+              <g class="nav-trash-body"><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M10 11v6" /><path d="M14 11v6" /></g>
+            </svg>
+            <span>Trash Bin</span>
+          </button>
+          <button class="nav-item" data-page="logs">
+            <svg class="nav-motion nav-motion-logs" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <g class="nav-log-binding"><path d="M8 2v4" /><path d="M16 2v4" /></g>
+              <rect class="nav-log-sheet" width="16" height="18" x="4" y="4" rx="2" />
+              <path class="nav-log-line nav-log-line-one" pathLength="1" d="M8 10h6" />
+              <path class="nav-log-line nav-log-line-two" pathLength="1" d="M8 14h8" />
+              <path class="nav-log-line nav-log-line-three" pathLength="1" d="M8 18h5" />
+            </svg>
+            <span>Operation Logs</span>
+          </button>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-note">
+            <svg><use href="#icon-shield"></use></svg>
+            <div><strong>Preview and restore</strong><span>Changes are reviewed before confirmation.</span></div>
+          </div>
+          <div class="product-credit">
+            <span id="app-version">v0.1.0</span>
+            <a id="creator-link" href="https://github.com/ethan3113" target="_blank" rel="noreferrer" aria-label="ENVOCS Studio on GitHub">
+              <span>Created by ENVOCS Studio</span>
+              <svg><use href="#icon-arrow-up-right"></use></svg>
+            </a>
+          </div>
+        </div>
+      </aside>
+
+      <main class="content">
+        <section class="topbar">
+          <div class="page-heading">
+            <h2 id="page-title">Chat Manager</h2>
+            <p id="page-subtitle">Browse, review, and remove Codex chat sessions.</p>
+          </div>
+          <div class="top-actions">
+            <button class="ghost icon-button-label" id="refresh-all"><svg><use href="#icon-refresh"></use></svg><span>Refresh</span></button>
+            <span class="status-pill syncing" id="health-pill"><svg class="status-icon"><use href="#icon-status-sync"></use></svg>Connecting to Codex</span>
+          </div>
+        </section>
+
+        <section id="overview-page" class="page">
+          <div class="metrics-grid">
+            <div class="metric">
+              <span>Chats</span>
+              <strong id="metric-chats">-</strong>
+            </div>
+            <div class="metric">
+              <span>Active</span>
+              <strong id="metric-active">-</strong>
+            </div>
+            <div class="metric">
+              <span>Archived</span>
+              <strong id="metric-archived">-</strong>
+            </div>
+            <div class="metric warning">
+              <span>Missing paths</span>
+              <strong id="metric-missing">-</strong>
+            </div>
+          </div>
+          <div class="section-band">
+            <div class="section-heading">
+              <h3>Managed Active Files</h3>
+              <p>These are the only Codex files this app is designed to modify in v1, and only after backup.</p>
+            </div>
+            <ul class="path-list" id="managed-files"></ul>
+          </div>
+          <div class="section-band">
+            <div class="section-heading">
+              <h3>Never Touch</h3>
+              <p>Authentication and secret-bearing files are excluded from scanning and backup copies.</p>
+            </div>
+            <ul class="path-list" id="never-touch"></ul>
+          </div>
+        </section>
+
+        <section id="chats-page" class="page active workspace-page">
+          <div class="workspace-layout">
+            <div class="workspace-main">
+              <div class="toolbar toolbar-chat">
+                <label class="search-control">
+                  <svg><use href="#icon-search"></use></svg>
+                  <input id="chat-search" type="search" placeholder="Search chats" aria-label="Search chats" />
+                </label>
+                <select id="chat-archived" aria-label="Chat state">
+                  <option value="active">Active</option>
+                  <option value="archived">Archived</option>
+                  <option value="all">All</option>
+                </select>
+                <select id="chat-cwd" aria-label="Project filter">
+                  <option value="">All projects</option>
+                </select>
+                <span class="toolbar-count" id="chat-result-count">0 chats</span>
+                <button id="chat-refresh" class="icon-only" title="Refresh chats" aria-label="Refresh chats"><svg><use href="#icon-refresh"></use></svg></button>
+              </div>
+              <div class="selection-bar" id="chat-selection-bar">
+                <span id="chat-selection-count">Select chats to manage</span>
+                <div class="selection-actions">
+                  <button id="preview-trash" class="icon-button-label" disabled><svg><use href="#icon-eye"></use></svg><span>Preview</span></button>
+                  <button id="apply-trash" class="danger-quiet icon-button-label" disabled><svg><use href="#icon-trash"></use></svg><span>Delete</span></button>
+                </div>
+              </div>
+              <div class="table-wrap chat-table-wrap">
+                <table class="compact-table chat-table">
+                  <thead>
+                    <tr>
+                      <th class="check-col"><input id="select-all-chats" type="checkbox" aria-label="Select all chats" /></th>
+                      <th>Chat</th>
+                      <th>Workspace</th>
+                      <th>Updated</th>
+                      <th>Health</th>
+                    </tr>
+                  </thead>
+                  <tbody id="chat-rows"></tbody>
+                </table>
+              </div>
+            </div>
+            <aside class="inspector" aria-label="Chat details">
+              <div class="inspector-heading">
+                <span>Chat details</span>
+                <span class="status-line muted-status" id="chat-detail-status"><svg class="status-icon"><use href="#icon-status-muted"></use></svg>Not selected</span>
+              </div>
+              <div class="inspector-title-block">
+                <h3 id="chat-detail-title">Choose a chat</h3>
+                <p id="chat-detail-id">Select a row to inspect its workspace and references.</p>
+              </div>
+              <dl class="detail-list" id="chat-detail-list"></dl>
+              <div class="operation-note" id="chat-operation-summary" hidden></div>
+              <details class="technical-details" id="chat-technical-details">
+                <summary>Technical references</summary>
+                <pre id="chat-preview">Select a chat or preview a delete operation.</pre>
+              </details>
+            </aside>
+          </div>
+        </section>
+
+        <section id="missing-page" class="page workspace-page">
+          <div class="workspace-layout">
+            <div class="workspace-main">
+              <div class="toolbar toolbar-missing">
+                <label class="search-control">
+                  <svg><use href="#icon-search"></use></svg>
+                  <input id="missing-search" type="search" placeholder="Search paths" aria-label="Search missing paths" />
+                </label>
+                <select id="missing-status" aria-label="Missing path status">
+                  <option value="">All status</option>
+                  <option value="cleanup">Cleanup available</option>
+                  <option value="relink">Relink available</option>
+                  <option value="review">Manual review</option>
+                </select>
+                <button id="missing-scan" class="icon-button-label"><svg><use href="#icon-refresh"></use></svg><span>Scan</span></button>
+                <span class="toolbar-count" id="missing-result-count">0 paths</span>
+              </div>
+              <div class="missing-table-head" aria-hidden="true">
+                <span>Path</span><span>Chats</span><span>Sessions</span><span>Status</span><span></span>
+              </div>
+              <div class="missing-list dense-list" id="missing-path-cleaner"></div>
+              <div class="batch-bar">
+                <div><strong>Batch review</strong><span id="missing-batch-copy">No unrecoverable paths selected.</span></div>
+                <button id="missing-trash-all" class="icon-button-label"><svg><use href="#icon-eye"></use></svg><span>Review unrecoverable paths</span></button>
+              </div>
+            </div>
+            <aside class="inspector" aria-label="Missing path details">
+              <div class="inspector-heading">
+                <span>Path details</span>
+                <span class="status-line muted-status" id="missing-detail-status"><svg class="status-icon"><use href="#icon-status-muted"></use></svg>Not selected</span>
+              </div>
+              <div class="inspector-title-block">
+                <h3 class="path" id="missing-detail-title">Choose a path</h3>
+                <p id="missing-detail-copy">Review its related chats and choose a safe next step.</p>
+              </div>
+              <div class="mini-stats" id="missing-detail-stats"></div>
+              <div class="inspector-actions" id="missing-inspector-actions">
+                <button id="missing-relink" class="primary" disabled>Relink path</button>
+                <button id="missing-preview-action" disabled>Preview cleanup</button>
+              </div>
+              <details class="advanced-actions" id="missing-advanced-actions">
+                <summary>Advanced actions</summary>
+                <div class="advanced-action-body">
+                  <button id="missing-move-action" class="danger-quiet" disabled>Move Codex records to Trash Bin</button>
+                  <p>Actual project files are never deleted.</p>
+                  <button id="missing-project-action" class="text-button" disabled>Remove the project reference and related chats</button>
+                </div>
+              </details>
+              <details class="technical-details" id="missing-technical-details">
+                <summary>Technical references</summary>
+                <pre id="missing-preview">Run a scan, then choose a path to inspect.</pre>
+              </details>
+            </aside>
+          </div>
+        </section>
+
+        <section id="relocation-page" class="page workspace-page">
+          <div class="workspace-layout relocation-layout">
+            <div class="workspace-main framed-workspace">
+              <div class="section-heading">
+                <h3>Missing Project Paths</h3>
+                <p>Select a missing location to use it as the old path.</p>
+              </div>
+              <div class="missing-list relocation-path-list" id="missing-paths"></div>
+            </div>
+            <aside class="inspector relocation-inspector">
+              <div class="inspector-heading"><span>Relocation setup</span><span class="status-line info-status"><svg class="status-icon"><use href="#icon-status-info"></use></svg>Preview first</span></div>
+              <div class="inspector-title-block">
+                <h3>Repair a moved workspace</h3>
+                <p>Only proven active Codex routing references are updated.</p>
+              </div>
+              <div class="form-grid">
+                <label>
+                  Old path
+                  <input id="old-path" type="text" placeholder="~/Projects/old-folder" />
+                </label>
+                <label>
+                  New path
+                  <input id="new-path" type="text" placeholder="~/Projects/new-folder" />
+                </label>
+              </div>
+              <div class="inspector-actions two-up">
+                <button id="preview-relocation">Preview relocation</button>
+                <button id="apply-relocation" class="primary" disabled>Apply relocation</button>
+              </div>
+              <details class="technical-details">
+                <summary>Relocation preview</summary>
+                <pre id="relocation-preview">Enter both paths to generate a relocation preview.</pre>
+              </details>
+            </aside>
+          </div>
+        </section>
+
+        <section id="trashbin-page" class="page workspace-page">
+          <div class="workspace-layout">
+            <div class="workspace-main framed-workspace">
+              <div class="list-toolbar">
+                <div><strong>Deleted items</strong><span>Nothing here affects active Codex data until restored.</span></div>
+                <span class="toolbar-count" id="trash-result-count">0 items</span>
+              </div>
+              <div id="trash-bin-list" class="list-stack dense-list"></div>
+            </div>
+            <aside class="inspector" aria-label="Trash Bin item details">
+              <div class="inspector-heading">
+                <span>Trash item</span>
+                <span class="status-line muted-status" id="trash-detail-status"><svg class="status-icon"><use href="#icon-status-muted"></use></svg>Not selected</span>
+              </div>
+              <div class="inspector-title-block">
+                <h3 id="trash-detail-title">Choose an item</h3>
+                <p id="trash-detail-id">Review restore data before taking action.</p>
+              </div>
+              <dl class="detail-list" id="trash-detail-list"></dl>
+              <div class="inspector-actions" id="trash-inspector-actions">
+                <button id="trash-preview-restore" disabled>Preview restore</button>
+                <button id="trash-restore" class="primary" disabled>Restore</button>
+              </div>
+              <details class="advanced-actions">
+                <summary>Advanced actions</summary>
+                <div class="advanced-action-body">
+                  <button id="trash-permanent-delete" class="danger-quiet" disabled>Permanently delete this Trash item</button>
+                  <p>This only removes data already inside the app Trash Bin.</p>
+                </div>
+              </details>
+              <details class="technical-details" id="trash-technical-details">
+                <summary>Restore data</summary>
+                <pre id="trash-bin-preview">Choose a Trash Bin item to inspect its restore data.</pre>
+              </details>
+            </aside>
+          </div>
+        </section>
+
+        <section id="cleaner-page" class="page workspace-page">
+          <div class="workspace-layout cleaner-layout">
+            <div class="workspace-main">
+              <div class="toolbar cleaner-toolbar">
+                <label class="search-control"><svg><use href="#icon-search"></use></svg><input id="cleaner-search" type="search" placeholder="Search files" aria-label="Search files" /></label>
+                <select id="cleaner-risk">
+                  <option value="">All risks</option>
+                  <option value="active">Active</option>
+                  <option value="important">Important</option>
+                  <option value="backup">Backup</option>
+                  <option value="stale">Stale</option>
+                  <option value="unknown">Unknown</option>
+                  <option value="danger">Danger</option>
+                </select>
+                <select id="cleaner-type"><option value="">All types</option></select>
+                <button id="cleaner-scan" class="icon-button-label"><svg><use href="#icon-refresh"></use></svg><span>Scan</span></button>
+                <button id="cleaner-report" class="icon-only" title="Generate report" aria-label="Generate cleanliness report"><svg><use href="#icon-file"></use></svg></button>
+              </div>
+              <div class="summary-strip">
+                <div><span>Cleanliness</span><strong id="cleaner-score">-</strong></div>
+                <div><span>Files</span><strong id="cleaner-files">-</strong></div>
+                <div><span>Stale</span><strong id="cleaner-stale">-</strong></div>
+                <div><span>Unknown</span><strong id="cleaner-unknown">-</strong></div>
+              </div>
+              <div class="selection-bar">
+                <span id="cleaner-selection-count">Select safe files to manage</span>
+                <div class="selection-actions">
+                  <button id="preview-archive" disabled>Preview</button>
+                  <button id="apply-archive" class="danger-quiet" disabled>Move to Trash Bin</button>
+                </div>
+              </div>
+              <div class="table-wrap cleaner-table-wrap">
+                <table class="compact-table cleaner-table">
+                  <thead>
+                    <tr>
+                      <th class="check-col"><input id="select-all-cleaner" type="checkbox" aria-label="Select all safe files" /></th>
+                      <th>File</th>
+                      <th>Classification</th>
+                      <th>Size</th>
+                      <th>Modified</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="cleaner-rows"></tbody>
+                </table>
+              </div>
+            </div>
+            <aside class="inspector" aria-label="File details">
+              <div class="inspector-heading"><span>File details</span><span class="status-line muted-status" id="cleaner-detail-status"><svg class="status-icon"><use href="#icon-status-muted"></use></svg>Not selected</span></div>
+              <div class="inspector-title-block"><h3 id="cleaner-detail-title">Choose a file</h3><p id="cleaner-detail-path">Scan the Codex folder, then review any item.</p></div>
+              <dl class="detail-list" id="cleaner-detail-list"></dl>
+              <div class="operation-note" id="cleaner-detail-explanation" hidden></div>
+              <details class="technical-details" id="cleaner-technical-details">
+                <summary>Technical details</summary>
+                <pre id="cleaner-preview">Scan .codex or select a file to inspect its details.</pre>
+              </details>
+            </aside>
+          </div>
+        </section>
+
+        <section id="logs-page" class="page workspace-page">
+          <div class="workspace-layout">
+            <div class="workspace-main framed-workspace">
+              <div class="list-toolbar">
+                <div><strong>Operation history</strong><span>Preview, apply, restore, and verification records.</span></div>
+                <span class="toolbar-count" id="log-result-count">0 events</span>
+              </div>
+              <div class="list-stack dense-list" id="operation-log-list"></div>
+            </div>
+            <aside class="inspector" aria-label="Operation details">
+              <div class="inspector-heading"><span>Operation details</span><span class="status-line muted-status" id="log-detail-status"><svg class="status-icon"><use href="#icon-status-muted"></use></svg>Not selected</span></div>
+              <div class="inspector-title-block"><h3 id="log-detail-title">Choose an event</h3><p id="log-detail-time">Applied operations and previews are recorded here.</p></div>
+              <dl class="detail-list" id="log-detail-list"></dl>
+              <details class="technical-details" id="log-technical-details">
+                <summary>Full record</summary>
+                <pre id="operation-logs">Recorded operations will appear here.</pre>
+              </details>
+            </aside>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <a
+      class="issue-fab"
+      id="issue-link"
+      href="https://github.com/ethan3113/clean-my-codex/issues/new?template=bug_report.yml"
+      target="_blank"
+      rel="noreferrer"
+      aria-label="Report an issue"
+      data-tooltip="Report an issue"
+    >
+      <svg aria-hidden="true"><use href="#icon-bug"></use></svg>
+    </a>
+
+    <dialog id="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-message">
+      <form method="dialog">
+        <h3 id="confirm-title">Confirm action</h3>
+        <p id="confirm-message"></p>
+        <label>
+          Confirmation text
+          <input id="confirm-input" autocomplete="off" />
+        </label>
+        <div class="dialog-actions">
+          <button value="cancel" class="ghost">Cancel</button>
+          <button id="confirm-submit" value="confirm" class="danger">Confirm</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <script src="/app.js"></script>
+  </body>
+</html>
