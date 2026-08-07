@@ -166,7 +166,7 @@ class ServerIntegrationTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(result["status"], "applied")
         self.assertIn(
-            self.new_path,
+            CodexStore._config_project_header(self.new_path),
             (self.codex_home / "config.toml").read_text(encoding="utf-8"),
         )
 

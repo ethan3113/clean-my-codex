@@ -98,6 +98,12 @@ def read_json(path: Path, default: Any) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def read_text_exact(path: Path) -> str:
+    """Read UTF-8 text without normalizing platform line endings."""
+    with Path(path).open("r", encoding="utf-8", newline="") as handle:
+        return handle.read()
+
+
 def write_json(path: Path, value: Any) -> None:
     atomic_write_text(path, json.dumps(value, indent=2, ensure_ascii=False) + "\n")
 
@@ -657,7 +663,7 @@ class CodexStore:
             if self.config_path.exists():
                 source_key = str(self.config_path.resolve())
                 current_digest = file_sha256(self.config_path)
-                original_text[source_key] = self.config_path.read_text(encoding="utf-8")
+                original_text[source_key] = read_text_exact(self.config_path)
                 old_header = self._config_project_header(old_path)
                 new_header = self._config_project_header(new_path)
                 lines = original_text[source_key].splitlines(keepends=True)
@@ -675,7 +681,7 @@ class CodexStore:
             if self.global_state_path.exists():
                 source_key = str(self.global_state_path.resolve())
                 current_digest = file_sha256(self.global_state_path)
-                original_text[source_key] = self.global_state_path.read_text(encoding="utf-8")
+                original_text[source_key] = read_text_exact(self.global_state_path)
                 state = read_json(self.global_state_path, {})
                 original_state = json.loads(json.dumps(state, ensure_ascii=False))
                 for key in [
@@ -3246,7 +3252,7 @@ class CodexStore:
             else:
                 restored_digest = atomic_write_text_if_unchanged(
                     source,
-                    snapshot.read_text(encoding="utf-8"),
+                    read_text_exact(snapshot),
                     before_digest,
                 )
                 if restored_digest != target_digest:
@@ -3332,7 +3338,7 @@ class CodexStore:
                 else:
                     reverted = atomic_write_text_if_unchanged(
                         source,
-                        guard_snapshot.read_text(encoding="utf-8"),
+                        read_text_exact(guard_snapshot),
                         row["restored_digest"],
                     )
                     if reverted != row["before_digest"]:
@@ -3392,7 +3398,7 @@ class CodexStore:
                         raise ValueError("active metadata target is missing or unsafe")
                     restored_digest = atomic_write_text_if_unchanged(
                         source,
-                        snapshot.read_text(encoding="utf-8"),
+                        read_text_exact(snapshot),
                         expected_post,
                     )
                     if restored_digest != expected_pre:
@@ -4653,9 +4659,9 @@ class CodexStore:
 
     def _db_label(self, db_path: Path) -> str:
         try:
-            return str(db_path.relative_to(self.codex_home))
+            return db_path.relative_to(self.codex_home).as_posix()
         except ValueError:
-            return str(db_path)
+            return db_path.as_posix()
 
     def _trash_relative(self, source: Path) -> Path:
         if is_link_like(source):

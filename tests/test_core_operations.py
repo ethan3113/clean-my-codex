@@ -374,11 +374,16 @@ class CleanMyCodexCoreTests(unittest.TestCase):
         )
         self.assertEqual(result["status"], "blocked")
         self.assertIn(
-            OLD_PATH,
+            project_header(OLD_PATH),
             (self.codex_home / "config.toml").read_text(encoding="utf-8"),
         )
 
     def test_relocation_rolls_back_all_active_files_on_late_failure(self):
+        config_path = self.codex_home / "config.toml"
+        original_config = (
+            config_path.read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
+        )
+        config_path.write_bytes(original_config)
         preview = self.store.preview_relocation(OLD_PATH, NEW_PATH)
         original_update = self.store._update_thread_cwd
 
@@ -408,10 +413,8 @@ class CleanMyCodexCoreTests(unittest.TestCase):
                 preview=preview,
             )
 
-        self.assertIn(
-            OLD_PATH,
-            (self.codex_home / "config.toml").read_text(encoding="utf-8"),
-        )
+        self.assertEqual(config_path.read_bytes(), original_config)
+        self.assertIn(project_header(OLD_PATH), config_path.read_text(encoding="utf-8"))
         state = json.loads(
             (self.codex_home / ".codex-global-state.json").read_text(encoding="utf-8")
         )
@@ -678,6 +681,29 @@ class CleanMyCodexCoreTests(unittest.TestCase):
         self.assertIn("Title mentions thread-1", index_text)
         state_text = (self.codex_home / ".codex-global-state.json").read_text(encoding="utf-8")
         self.assertIn("mentions thread-1 but is unrelated", state_text)
+
+    def test_trash_restore_preserves_original_metadata_line_endings(self):
+        index_path = self.codex_home / "session_index.jsonl"
+        original = (
+            index_path.read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
+        )
+        index_path.write_bytes(original)
+
+        deleted = self.store.delete_chat_to_trash_bin(
+            ["thread-1"], confirmation="DELETE CHAT"
+        )
+        restored = self.store.restore_trash_bin_item(
+            deleted["item_id"], confirmation="RESTORE FROM TRASH"
+        )
+
+        self.assertEqual(restored["status"], "restored", restored)
+        self.assertEqual(index_path.read_bytes(), original)
+
+    def test_database_labels_are_cross_platform_stable(self):
+        self.assertEqual(
+            self.store._db_label(self.codex_home / "sqlite" / "state_5.sqlite"),
+            "sqlite/state_5.sqlite",
+        )
 
     def test_trash_bin_restore_blocks_when_active_metadata_changed(self):
         result = self.store.delete_chat_to_trash_bin(["thread-1"], confirmation="DELETE CHAT")

@@ -9,6 +9,8 @@
 - Added a Windows build pipeline with pinned PyInstaller and WebView2 versions, self-contained .NET publication, bundled notices, package smoke test, ZIP, and SHA-256 output.
 - Added cross-platform CI plus architecture-specific desktop artifact workflows on Apple Silicon, Intel, and Windows runners.
 - Added Windows-native workspace path validation and TOML-safe escaping for backslash-separated project paths.
+- Preserved original metadata line endings during restore and rollback, including Windows CRLF files.
+- Made SQLite database labels platform-independent for consistent previews and manifests.
 - Added version-matched, vendored CPython license texts so desktop packaging is independent of runner installation layouts.
 - Updated pinned GitHub Actions to Node 24-compatible major versions.
 - Marked all CI desktop artifacts as unsigned development builds; signed and notarized release binaries remain a separate publication gate.
