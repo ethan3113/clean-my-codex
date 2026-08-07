@@ -149,12 +149,15 @@ The Windows build creates a self-contained WPF shell, bundled PyInstaller servic
 
 The `Desktop Packages` workflow builds separate Apple Silicon, Intel, and Windows x64 unsigned development artifacts on release branches. They are build evidence, not signed public releases.
 
+The manual `Signed Release` workflow builds an existing source tag, signs and notarizes both macOS architectures, Authenticode signs the Windows package, verifies all checksums, and then updates the matching GitHub release. It uses only credentials stored in the protected `release-signing` environment and defaults to keeping the release in pre-release state. See [SIGNING_AND_RELEASE.md](SIGNING_AND_RELEASE.md).
+
 ## Current Limits
 
 - Codex storage formats are not a public compatibility contract. Unknown tables or references are left untouched and reported for review.
 - On Windows, close Codex before applying a cleanup or relocation if Codex is holding an SQLite file lock. Clean My Codex fails and rolls back rather than forcing a locked replacement.
 - Existing Trash Bin items are not migrated automatically between the source launcher, macOS Application Support, and Windows application data.
 - Project cleanup removes Codex references and related chats; it never deletes the actual project directory.
+- The automated Windows signing path supports exportable PFX certificates. Hardware-token and cloud-only certificates require a provider-specific signing integration.
 
 The release builder copies only files listed in `PUBLIC_RELEASE_FILES.txt`. It rejects links and junctions, unsafe versions, runtime folders, database and session formats, machine paths, email addresses, UUID-like session identifiers, and common credential patterns before creating the archive.
 

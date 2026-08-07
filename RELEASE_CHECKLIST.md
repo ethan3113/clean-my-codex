@@ -55,6 +55,7 @@
 - [ ] Confirm the repository inventory contains only paths from `PUBLIC_RELEASE_FILES.txt` before the first commit.
 - [ ] Confirm every GitHub Action is pinned to a full commit SHA.
 - [ ] Confirm workflow artifacts are named as unsigned development builds and expire automatically.
+- [ ] Confirm the signed release asset verifier accepts exactly three ZIPs and three matching SHA-256 files.
 
 ## GitHub
 
@@ -68,3 +69,5 @@
 - [ ] Attach signed and notarized macOS archives only after each architecture-specific audit passes.
 - [ ] Attach the Authenticode-signed Windows x64 archive only after the Windows audit passes.
 - [ ] Do not attach unsigned CI development artifacts to a public release.
+- [ ] Run `Signed Release` from `main` through the protected `release-signing` environment.
+- [ ] Keep promotion disabled until all signed packages open successfully on clean matching systems.

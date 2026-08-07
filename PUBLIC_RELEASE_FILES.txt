@@ -4,6 +4,7 @@
 .github/pull_request_template.md
 .github/workflows/ci.yml
 .github/workflows/desktop-packages.yml
+.github/workflows/signed-release.yml
 .gitignore
 
 # Product and governance
@@ -19,6 +20,7 @@ README.md
 RELEASE_CHECKLIST.md
 SAFETY_AND_BACKUP_POLICY.md
 SECURITY.md
+SIGNING_AND_RELEASE.md
 THIRD_PARTY_NOTICES.md
 TRASH_BIN_SYSTEM.md
 
@@ -45,6 +47,8 @@ script/macos_bundle_architecture.py
 script/macos_bundle_minimum.py
 script/package_icns.py
 script/package_windows_icon.py
+script/sign_macos_release.sh
+script/sign_windows_release.ps1
 
 # Native Windows application
 windows/CleanMyCodexApp/App.xaml
@@ -71,6 +75,7 @@ static/styles.css
 scripts/__init__.py
 scripts/audit_release.py
 scripts/build_release.py
+scripts/verify_signed_release_assets.py
 
 # Tests
 tests/test_core_operations.py
@@ -80,4 +85,5 @@ tests/test_product_metadata.py
 tests/test_platform_security.py
 tests/test_release_packaging.py
 tests/test_server_integration.py
+tests/test_signed_release.py
 tests/test_windows_packaging.py

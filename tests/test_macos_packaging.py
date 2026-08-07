@@ -90,6 +90,8 @@ class MacOSPackagingTests(unittest.TestCase):
         self.assertIn('--target-architecture "$EXPECTED_ARCH"', build)
         self.assertIn('-arch "$EXPECTED_ARCH"', build)
         self.assertIn("codesign --verify --deep --strict", build)
+        self.assertIn("Formal Developer ID signing is handled", build)
+        self.assertIn("Signing mode: ad hoc development", build)
 
         build_and_run = (ROOT / "script" / "build_and_run.sh").read_text(encoding="utf-8")
         self.assertNotIn("pkill", build_and_run)
