@@ -40,7 +40,7 @@ $env:PYINSTALLER_CONFIG_DIR = Join-Path $BuildRoot "pyinstaller-config"
     --specpath (Join-Path $BuildRoot "server-spec")
 if ($LASTEXITCODE -ne 0) { throw "The bundled Python service build failed." }
 
-& dotnet restore $Project -p:CleanMyCodexIcon=$Icon
+& dotnet restore $Project --runtime win-x64 -p:CleanMyCodexIcon=$Icon
 if ($LASTEXITCODE -ne 0) { throw "The Windows desktop dependencies could not be restored." }
 & dotnet publish $Project `
     --configuration $Configuration `

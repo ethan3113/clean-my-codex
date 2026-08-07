@@ -1,3 +1,4 @@
+import json
 import importlib.util
 import struct
 import tempfile
@@ -55,11 +56,17 @@ class WindowsPackagingTests(unittest.TestCase):
     def test_windows_build_creates_a_self_contained_smoke_tested_package(self):
         build = (ROOT / "script" / "build_windows_app.ps1").read_text(encoding="utf-8")
         self.assertIn("--self-contained true", build)
+        self.assertIn("dotnet restore $Project --runtime win-x64", build)
         self.assertIn("requirements-windows-build.txt", build)
         self.assertIn("--smoke-test", build)
         self.assertIn("WEBVIEW2_LICENSE.txt", build)
         self.assertIn("cpython_runtime_license.py", build)
         self.assertIn("Compress-Archive", build)
+
+        sdk = json.loads((ROOT / "global.json").read_text(encoding="utf-8"))["sdk"]
+        self.assertEqual(sdk["version"], "8.0.100")
+        self.assertEqual(sdk["rollForward"], "latestFeature")
+        self.assertFalse(sdk["allowPrerelease"])
 
     def test_generated_windows_icon_is_a_valid_png_backed_ico(self):
         module = load_icon_module()
@@ -77,6 +84,7 @@ class WindowsPackagingTests(unittest.TestCase):
         }
         expected = {
             "requirements-windows-build.txt",
+            "global.json",
             "script/build_windows_app.ps1",
             "script/package_windows_icon.py",
             "windows/CleanMyCodexApp/App.xaml",

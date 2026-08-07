@@ -7,6 +7,7 @@
 - Added cross-platform filesystem safety helpers: POSIX owner-mode enforcement remains strict, while Windows uses profile ACL inheritance and rejects symbolic links and directory junctions.
 - Added architecture validation for every Mach-O in macOS packages and fail-closed architecture selection in the build script.
 - Added a Windows build pipeline with pinned PyInstaller and WebView2 versions, self-contained .NET publication, bundled notices, package smoke test, ZIP, and SHA-256 output.
+- Pinned Windows desktop builds to the .NET 8 SDK and restored the explicit `win-x64` runtime pack before publication.
 - Added cross-platform CI plus architecture-specific desktop artifact workflows on Apple Silicon, Intel, and Windows runners.
 - Added Windows-native workspace path validation and TOML-safe escaping for backslash-separated project paths.
 - Preserved original metadata line endings during restore and rollback, including Windows CRLF files.
