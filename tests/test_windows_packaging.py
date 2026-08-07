@@ -41,6 +41,8 @@ class WindowsPackagingTests(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertIn('"--host", "127.0.0.1", "--port", "0"', session)
+        self.assertIn("using System.IO;", session)
+        self.assertIn("using System.IO;", window)
         self.assertIn('"X-Clean-My-Codex-Token"', session)
         self.assertIn('"/api/lifecycle/shutdown"', session)
         self.assertIn("safe_to_terminate", session)
