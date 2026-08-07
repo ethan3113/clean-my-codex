@@ -2,7 +2,7 @@
 
 Clean My Codex includes bundled SVG icon geometry derived from [Lucide](https://github.com/lucide-icons/lucide). The project does not load icon code from a network service.
 
-Standalone macOS and Windows builds also contain a CPython runtime and a PyInstaller bootloader. Each package includes the complete license texts as `PYTHON_LICENSE.txt` and `PYINSTALLER_COPYING.txt` in its Documentation directory.
+Standalone macOS and Windows builds also contain a CPython runtime and a PyInstaller bootloader. Version-matched CPython license texts are kept in `licenses/` so hosted builds do not depend on machine-specific installation layouts. Each package includes the selected text as `PYTHON_LICENSE.txt` and PyInstaller's text as `PYINSTALLER_COPYING.txt` in its Documentation directory.
 
 Windows builds use Microsoft's WebView2 SDK and the installed Evergreen WebView2 Runtime. The package includes `WEBVIEW2_LICENSE.txt` and `WEBVIEW2_NOTICE.txt` from the pinned SDK package.
 

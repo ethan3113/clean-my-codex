@@ -35,7 +35,7 @@ class ServerIntegrationTests(unittest.TestCase):
         self.new_path = str(self.root / "new-workspace")
         Path(self.new_path).mkdir()
         (self.codex_home / "config.toml").write_text(
-            f'[projects."{self.old_path}"]\ntrust_level = "trusted"\n',
+            f'{CodexStore._config_project_header(self.old_path)}\ntrust_level = "trusted"\n',
             encoding="utf-8",
         )
         (self.codex_home / ".codex-global-state.json").write_text("{}\n", encoding="utf-8")

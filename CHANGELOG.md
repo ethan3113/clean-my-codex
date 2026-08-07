@@ -8,6 +8,9 @@
 - Added architecture validation for every Mach-O in macOS packages and fail-closed architecture selection in the build script.
 - Added a Windows build pipeline with pinned PyInstaller and WebView2 versions, self-contained .NET publication, bundled notices, package smoke test, ZIP, and SHA-256 output.
 - Added cross-platform CI plus architecture-specific desktop artifact workflows on Apple Silicon, Intel, and Windows runners.
+- Added Windows-native workspace path validation and TOML-safe escaping for backslash-separated project paths.
+- Added version-matched, vendored CPython license texts so desktop packaging is independent of runner installation layouts.
+- Updated pinned GitHub Actions to Node 24-compatible major versions.
 - Marked all CI desktop artifacts as unsigned development builds; signed and notarized release binaries remain a separate publication gate.
 
 ## 0.2.0 - 2026-08-06

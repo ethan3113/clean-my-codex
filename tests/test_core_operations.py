@@ -15,8 +15,16 @@ from clean_my_codex.core import (
 from clean_my_codex.platform_security import POSIX_PERMISSIONS
 
 
-OLD_PATH = "/workspaces/example/old-folder"
-NEW_PATH = "/workspaces/example/new-folder"
+if os.name == "nt":
+    OLD_PATH = r"C:\workspaces\example\old-folder"
+    NEW_PATH = r"C:\workspaces\example\new-folder"
+else:
+    OLD_PATH = "/workspaces/example/old-folder"
+    NEW_PATH = "/workspaces/example/new-folder"
+
+
+def project_header(path: str) -> str:
+    return CodexStore._config_project_header(path)
 
 
 class CleanMyCodexCoreTests(unittest.TestCase):
@@ -133,7 +141,7 @@ class CleanMyCodexCoreTests(unittest.TestCase):
             con.close()
 
         (self.codex_home / "config.toml").write_text(
-            f'[projects."{OLD_PATH}"]\ntrust_level = "trusted"\n',
+            f'{project_header(OLD_PATH)}\ntrust_level = "trusted"\n',
             encoding="utf-8",
         )
         (self.codex_home / ".codex-global-state.json").write_text(
@@ -312,23 +320,32 @@ class CleanMyCodexCoreTests(unittest.TestCase):
     def test_relocation_preserves_prefix_siblings_and_rejects_relative_paths(self):
         sibling = f"{OLD_PATH}-archive"
         with (self.codex_home / "config.toml").open("a", encoding="utf-8") as handle:
-            handle.write(f'\n[projects."{sibling}"]\ntrust_level = "trusted"\n')
+            handle.write(f'\n{project_header(sibling)}\ntrust_level = "trusted"\n')
             handle.write(f'# historical note: {OLD_PATH}\n')
 
         preview = self.store.preview_relocation(OLD_PATH, NEW_PATH)
         self.assertEqual(preview["config_toml_matches"], 1)
         self.store.apply_relocation(OLD_PATH, NEW_PATH, confirm=True)
         config_text = (self.codex_home / "config.toml").read_text(encoding="utf-8")
-        self.assertIn(f'[projects."{sibling}"]', config_text)
+        self.assertIn(project_header(sibling), config_text)
         self.assertIn(f'# historical note: {OLD_PATH}', config_text)
 
         with self.assertRaises(ValueError):
             self.store.preview_relocation("relative/old", NEW_PATH)
 
     def test_relocation_rejects_unsafe_toml_path_characters(self):
-        for value in [f'{NEW_PATH}"quoted', f"{NEW_PATH}\\escaped", f"{NEW_PATH}\nline"]:
+        values = [f'{NEW_PATH}"quoted', f"{NEW_PATH}\nline"]
+        if os.name != "nt":
+            values.append(f"{NEW_PATH}\\escaped")
+        for value in values:
             with self.subTest(value=value), self.assertRaises(ValueError):
                 self.store.preview_relocation(OLD_PATH, value)
+
+    def test_config_project_header_escapes_windows_backslashes(self):
+        self.assertEqual(
+            project_header(r"C:\workspaces\example"),
+            '[projects."C:\\\\workspaces\\\\example"]',
+        )
 
     def test_relocation_does_not_create_a_workspace_label_without_a_source_label(self):
         state_path = self.codex_home / ".codex-global-state.json"
@@ -413,8 +430,8 @@ class CleanMyCodexCoreTests(unittest.TestCase):
         self.assertEqual(self.store.list_logs()[0]["status"], "applied")
 
         config_text = (self.codex_home / "config.toml").read_text(encoding="utf-8")
-        self.assertIn(NEW_PATH, config_text)
-        self.assertNotIn(OLD_PATH, config_text)
+        self.assertIn(project_header(NEW_PATH), config_text)
+        self.assertNotIn(project_header(OLD_PATH), config_text)
 
         state = json.loads(
             (self.codex_home / ".codex-global-state.json").read_text(encoding="utf-8")
@@ -625,7 +642,7 @@ class CleanMyCodexCoreTests(unittest.TestCase):
             result["item_id"],
             confirmation="RESTORE FROM TRASH",
         )
-        self.assertEqual(restored["status"], "restored")
+        self.assertEqual(restored["status"], "restored", restored)
         self.assertIn("sqlite-rows", {row["kind"] for row in restored["restored_metadata"]})
         self.assertTrue(self.session_path.exists())
         if POSIX_PERMISSIONS:
@@ -743,7 +760,7 @@ class CleanMyCodexCoreTests(unittest.TestCase):
         con = sqlite3.connect(self.codex_home / "state_5.sqlite")
         row_count = con.execute("SELECT COUNT(*) FROM threads WHERE id='thread-1'").fetchone()[0]
         con.close()
-        self.assertEqual(row_count, 0)
+        self.assertEqual(row_count, 0, restored)
 
     def test_delete_rejects_stale_preview_before_any_active_change(self):
         preview = self.store.preview_delete_chat_to_trash_bin(["thread-1"])
@@ -802,7 +819,7 @@ class CleanMyCodexCoreTests(unittest.TestCase):
         self.assertFalse(second_session.exists())
         self.assertEqual(sorted(result["thread_ids"]), ["thread-1", "thread-2"])
         config_text = (self.codex_home / "config.toml").read_text(encoding="utf-8")
-        self.assertNotIn(OLD_PATH, config_text)
+        self.assertNotIn(project_header(OLD_PATH), config_text)
         state_text = (self.codex_home / ".codex-global-state.json").read_text(encoding="utf-8")
         self.assertNotIn(OLD_PATH, state_text)
         state = json.loads(state_text)
@@ -999,8 +1016,8 @@ class CleanMyCodexCoreTests(unittest.TestCase):
         self.assertEqual(restored["status"], "manual-review-needed")
 
         config_text = (self.codex_home / "config.toml").read_text(encoding="utf-8")
-        self.assertNotIn(OLD_PATH, config_text)
-        self.assertIn(NEW_PATH, config_text)
+        self.assertNotIn(project_header(OLD_PATH), config_text)
+        self.assertIn(project_header(NEW_PATH), config_text)
 
         con = sqlite3.connect(self.codex_home / "state_5.sqlite")
         cwd = con.execute("SELECT cwd FROM threads WHERE id='thread-1'").fetchone()[0]

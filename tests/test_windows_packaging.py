@@ -58,6 +58,7 @@ class WindowsPackagingTests(unittest.TestCase):
         self.assertIn("requirements-windows-build.txt", build)
         self.assertIn("--smoke-test", build)
         self.assertIn("WEBVIEW2_LICENSE.txt", build)
+        self.assertIn("cpython_runtime_license.py", build)
         self.assertIn("Compress-Archive", build)
 
     def test_generated_windows_icon_is_a_valid_png_backed_ico(self):

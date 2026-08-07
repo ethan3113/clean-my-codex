@@ -64,7 +64,7 @@ New-Item $Documentation -ItemType Directory -Force | Out-Null
 Copy-Item (Join-Path $Root "LICENSE"), (Join-Path $Root "README.md"), (Join-Path $Root "THIRD_PARTY_NOTICES.md") $Documentation
 
 $PyInstallerLicense = (& $Python -c "from importlib.metadata import distribution; d=distribution('pyinstaller'); print(next(p.locate() for p in d.files if p.name == 'COPYING.txt'))").Trim()
-$PythonLicense = (& $Python -c "import sys; from pathlib import Path; roots=(Path(sys.base_prefix), *Path(sys.base_prefix).parents); names=('LICENSE.txt','LICENSE'); print(next(root/name for root in roots for name in names if (root/name).is_file()))").Trim()
+$PythonLicense = (& $Python (Join-Path $Root "script\cpython_runtime_license.py") $Root).Trim()
 Copy-Item $PyInstallerLicense (Join-Path $Documentation "PYINSTALLER_COPYING.txt")
 Copy-Item $PythonLicense (Join-Path $Documentation "PYTHON_LICENSE.txt")
 

@@ -99,7 +99,9 @@ class CodexFolderCleanerTests(unittest.TestCase):
 
         self.assertEqual(preview["status"], "preview_only")
         self.assertEqual(preview["total_files"], 1)
-        self.assertIn("/.codex/config.toml.before-path-relocation-20260614-221215", preview["files"][0]["destination"])
+        destination = Path(preview["files"][0]["destination"])
+        self.assertEqual(destination.parent.name, ".codex")
+        self.assertEqual(destination.name, "config.toml.before-path-relocation-20260614-221215")
 
         blocked = self.store.archive_codex_files([target], confirmation="")
         self.assertEqual(blocked["status"], "confirmation_required")

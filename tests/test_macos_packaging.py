@@ -40,6 +40,16 @@ def load_architecture_module():
     return module
 
 
+def load_runtime_license_module():
+    path = ROOT / "script" / "cpython_runtime_license.py"
+    spec = importlib.util.spec_from_file_location("cpython_runtime_license", path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("Unable to load CPython license selector")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 class MacOSPackagingTests(unittest.TestCase):
     def test_native_app_metadata_and_launch_contract(self):
         with (ROOT / "macos" / "Info.plist").open("rb") as handle:
@@ -74,6 +84,7 @@ class MacOSPackagingTests(unittest.TestCase):
         self.assertIn('PYINSTALLER_CONFIG_DIR="$BUILD_ROOT/pyinstaller-config"', build)
         self.assertIn("PYINSTALLER_COPYING.txt", build)
         self.assertIn("PYTHON_LICENSE.txt", build)
+        self.assertIn("cpython_runtime_license.py", build)
         self.assertIn("macos_bundle_minimum.py", build)
         self.assertIn("macos_bundle_architecture.py", build)
         self.assertIn('--target-architecture "$EXPECTED_ARCH"', build)
@@ -83,6 +94,17 @@ class MacOSPackagingTests(unittest.TestCase):
         build_and_run = (ROOT / "script" / "build_and_run.sh").read_text(encoding="utf-8")
         self.assertNotIn("pkill", build_and_run)
         self.assertIn('pgrep -x "Clean My Codex"', build_and_run)
+
+    def test_runtime_license_is_version_matched_and_complete(self):
+        module = load_runtime_license_module()
+        for version in [(3, 13), (3, 14)]:
+            path = module.runtime_license(ROOT, version)
+            text = path.read_text(encoding="utf-8")
+            self.assertIn("PYTHON SOFTWARE FOUNDATION LICENSE VERSION 2", text)
+            self.assertIn("BEOPEN.COM LICENSE AGREEMENT FOR PYTHON 2.0", text)
+
+        with self.assertRaisesRegex(RuntimeError, "No vendored CPython license"):
+            module.runtime_license(ROOT, (9, 99))
 
     def test_macos_minimum_version_uses_the_highest_macho_requirement(self):
         module = load_minimum_version_module()
@@ -172,7 +194,10 @@ class MacOSPackagingTests(unittest.TestCase):
             "macos/CleanMyCodexApp/main.m",
             "macos/Info.plist",
             "script/build_and_run.sh",
+            "script/cpython_runtime_license.py",
             "script/build_macos_app.sh",
+            "licenses/CPython-3.13-LICENSE.txt",
+            "licenses/CPython-3.14-LICENSE.txt",
             "script/macos_bundle_architecture.py",
             "script/macos_bundle_minimum.py",
             "script/package_icns.py",

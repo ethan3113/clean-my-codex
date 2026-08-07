@@ -538,7 +538,7 @@ class CodexStore:
                 {
                     "path": path,
                     "thread_count": count,
-                    "exists": Path(path).exists() if path.startswith("/") else None,
+                    "exists": Path(path).exists() if Path(path).is_absolute() else None,
                 }
                 for path, count in sorted(cwd_counts.items(), key=lambda item: (-item[1], item[0]))
             ],
@@ -3628,7 +3628,8 @@ class CodexStore:
 
     @staticmethod
     def _config_project_header(path: str) -> str:
-        return f'[projects."{path.replace(chr(34), chr(92) + chr(34))}"]'
+        escaped = path.replace("\\", "\\\\").replace(chr(34), chr(92) + chr(34))
+        return f'[projects."{escaped}"]'
 
     @staticmethod
     def _validate_relocation_paths(old_path: str, new_path: str) -> tuple[str, str]:
@@ -3641,8 +3642,10 @@ class CodexStore:
         if old_value == new_value:
             raise ValueError("Old and new workspace paths must be different")
         for value in (old_value, new_value):
-            if '"' in value or "\\" in value or any(ord(character) < 32 or ord(character) == 127 for character in value):
-                raise ValueError("Workspace paths cannot contain quotes, backslashes, or control characters")
+            if '"' in value or any(ord(character) < 32 or ord(character) == 127 for character in value):
+                raise ValueError("Workspace paths cannot contain quotes or control characters")
+            if os.name != "nt" and "\\" in value:
+                raise ValueError("Workspace paths cannot contain backslashes on this platform")
         return old_value, new_value
 
     def _remove_config_project_blocks(
