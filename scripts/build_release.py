@@ -13,9 +13,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 try:
-    from .audit_release import audit_tree, format_findings
+    from .audit_release import audit_tree, format_findings, is_link_like
 except ImportError:  # Direct script execution.
-    from audit_release import audit_tree, format_findings
+    from audit_release import audit_tree, format_findings, is_link_like
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -65,8 +65,8 @@ def _copy_allowlisted(root: Path, stage: Path, entries: list[Path]) -> None:
         current = root_resolved
         for part in relative.parts:
             current = current / part
-            if current.is_symlink():
-                raise RuntimeError(f"Release source contains a symbolic link: {relative}")
+            if is_link_like(current):
+                raise RuntimeError(f"Release source contains a link or junction: {relative}")
         source = lexical_source.resolve()
         try:
             source.relative_to(root_resolved)
@@ -84,7 +84,7 @@ def _capture_stage(stage: Path, entries: list[Path]) -> list[ReleasePayload]:
     actual = {
         path.relative_to(stage).as_posix()
         for path in stage.rglob("*")
-        if path.is_file() or path.is_symlink()
+        if path.is_file() or is_link_like(path)
     }
     if actual != expected:
         raise RuntimeError("Release stage inventory changed before capture")
@@ -111,7 +111,7 @@ def _capture_stage(stage: Path, entries: list[Path]) -> list[ReleasePayload]:
     final_actual = {
         path.relative_to(stage).as_posix()
         for path in stage.rglob("*")
-        if path.is_file() or path.is_symlink()
+        if path.is_file() or is_link_like(path)
     }
     if final_actual != expected:
         raise RuntimeError("Release stage inventory changed during capture")
@@ -159,8 +159,8 @@ def _write_deterministic_zip(
                 info.compress_type = zipfile.ZIP_DEFLATED
                 info.external_attr = payload.mode << 16
                 archive.writestr(info, payload.content)
-        if archive_path.is_symlink():
-            raise RuntimeError("Release archive cannot be a symbolic link")
+        if is_link_like(archive_path):
+            raise RuntimeError("Release archive cannot be a link or junction")
         os.replace(temporary_path, archive_path)
     finally:
         if temporary_path.exists():
@@ -181,7 +181,7 @@ def _release_lock(output: Path):
         os.close(descriptor)
         yield
     finally:
-        if lock_path.is_file() and not lock_path.is_symlink():
+        if lock_path.is_file() and not is_link_like(lock_path):
             lock_path.unlink()
 
 
@@ -207,8 +207,8 @@ def build_release(
 
     output.mkdir(parents=True, exist_ok=True)
     with _release_lock(output):
-        if stage.is_symlink() or archive_path.is_symlink() or checksum_path.is_symlink():
-            raise RuntimeError("Release outputs cannot be symbolic links")
+        if is_link_like(stage) or is_link_like(archive_path) or is_link_like(checksum_path):
+            raise RuntimeError("Release outputs cannot be links or junctions")
         existing_outputs = [path for path in (stage, archive_path, checksum_path) if path.exists()]
         if existing_outputs and not replace_existing:
             names = ", ".join(path.name for path in existing_outputs)
@@ -240,8 +240,8 @@ def build_release(
                 handle.write(f"{digest}  {archive_path.name}\n")
                 handle.flush()
                 os.fsync(handle.fileno())
-            if checksum_path.is_symlink():
-                raise RuntimeError("Release checksum cannot be a symbolic link")
+            if is_link_like(checksum_path):
+                raise RuntimeError("Release checksum cannot be a link or junction")
             os.replace(checksum_temporary, checksum_path)
         finally:
             if checksum_temporary.exists():

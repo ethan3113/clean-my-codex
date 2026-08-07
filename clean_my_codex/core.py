@@ -14,6 +14,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from .platform_security import file_mode, is_link_like, set_private_mode
+
 
 PRIVATE_FILE_MODE = 0o600
 PRIVATE_DIR_MODE = 0o700
@@ -96,14 +98,20 @@ def read_json(path: Path, default: Any) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def read_text_exact(path: Path) -> str:
+    """Read UTF-8 text without normalizing platform line endings."""
+    with Path(path).open("r", encoding="utf-8", newline="") as handle:
+        return handle.read()
+
+
 def write_json(path: Path, value: Any) -> None:
     atomic_write_text(path, json.dumps(value, indent=2, ensure_ascii=False) + "\n")
 
 
 def ensure_private_dir(path: Path, parents: bool = True, exist_ok: bool = True) -> None:
     path = Path(path)
-    if path.is_symlink():
-        raise ValueError(f"Private runtime directory cannot be a symbolic link: {path}")
+    if is_link_like(path):
+        raise ValueError(f"Private runtime directory cannot be a link or junction: {path}")
     missing: list[Path] = []
     current = path
     while not current.exists():
@@ -111,20 +119,20 @@ def ensure_private_dir(path: Path, parents: bool = True, exist_ok: bool = True) 
         current = current.parent
     path.mkdir(mode=PRIVATE_DIR_MODE, parents=parents, exist_ok=exist_ok)
     for directory in reversed(missing):
-        if directory.is_symlink() or not directory.is_dir():
+        if is_link_like(directory) or not directory.is_dir():
             raise ValueError(f"Private runtime directory is unsafe: {directory}")
-        os.chmod(directory, PRIVATE_DIR_MODE)
-    if path.is_symlink() or not path.is_dir():
+        set_private_mode(directory, PRIVATE_DIR_MODE)
+    if is_link_like(path) or not path.is_dir():
         raise ValueError(f"Private runtime directory is unsafe: {path}")
-    os.chmod(path, PRIVATE_DIR_MODE)
+    set_private_mode(path, PRIVATE_DIR_MODE)
 
 
 def _atomic_text_mode(path: Path) -> int:
     if not path.exists():
         return PRIVATE_FILE_MODE
-    if path.is_symlink() or not path.is_file():
+    if is_link_like(path) or not path.is_file():
         raise ValueError(f"Atomic write target is unsafe: {path}")
-    return path.stat().st_mode & 0o777
+    return file_mode(path, PRIVATE_FILE_MODE)
 
 
 def _write_atomic_temp(path: Path, text: str) -> Path:
@@ -135,7 +143,7 @@ def _write_atomic_temp(path: Path, text: str) -> Path:
     mode = _atomic_text_mode(path)
     descriptor = os.open(tmp, flags, mode)
     try:
-        os.chmod(tmp, mode)
+        set_private_mode(tmp, mode)
         with os.fdopen(descriptor, "w", encoding="utf-8", newline="") as handle:
             descriptor = -1
             handle.write(text)
@@ -165,7 +173,7 @@ def atomic_write_text_if_unchanged(path: Path, text: str, expected_digest: str) 
     tmp: Path | None = None
     try:
         tmp = _write_atomic_temp(path, text)
-        if not path.is_file() or path.is_symlink() or file_sha256(path) != expected_digest:
+        if not path.is_file() or is_link_like(path) or file_sha256(path) != expected_digest:
             raise RuntimeError(f"Active metadata changed while preparing an update: {path}")
         os.replace(tmp, path)
     finally:
@@ -180,7 +188,7 @@ def managed_item_path(root: Path, item_id: str, label: str) -> Path:
         raise ValueError(f"Invalid {label} identifier")
     root_resolved = root.resolve()
     lexical_candidate = root / value
-    if lexical_candidate.is_symlink():
+    if is_link_like(lexical_candidate):
         raise ValueError(f"Invalid {label} identifier")
     candidate = lexical_candidate.resolve()
     try:
@@ -207,8 +215,8 @@ def confined_path(root: Path, candidate: Path, label: str) -> Path:
     current = root_resolved
     for part in relative.parts:
         current = current / part
-        if current.is_symlink():
-            raise ValueError(f"{label} cannot contain symbolic links")
+        if is_link_like(current):
+            raise ValueError(f"{label} cannot contain links or junctions")
     try:
         lexical.resolve(strict=False).relative_to(root_resolved)
     except ValueError as exc:
@@ -296,7 +304,7 @@ class BackupManager:
                 self._sqlite_backup(source, destination)
             else:
                 shutil.copy2(source, destination)
-                os.chmod(destination, PRIVATE_FILE_MODE)
+                set_private_mode(destination, PRIVATE_FILE_MODE)
             copied.append({"source": str(source), "backup": str(destination)})
 
         manifest = {
@@ -317,14 +325,14 @@ class BackupManager:
             ensure_ascii=False,
         )
         log_path = self.logs_dir / "operations.jsonl"
-        if log_path.is_symlink():
-            raise ValueError("Operation log cannot be a symbolic link")
+        if is_link_like(log_path):
+            raise ValueError("Operation log cannot be a link or junction")
         flags = os.O_WRONLY | os.O_CREAT | os.O_APPEND
         if hasattr(os, "O_NOFOLLOW"):
             flags |= os.O_NOFOLLOW
         descriptor = os.open(log_path, flags, PRIVATE_FILE_MODE)
         try:
-            os.chmod(log_path, PRIVATE_FILE_MODE)
+            set_private_mode(log_path, PRIVATE_FILE_MODE)
             os.write(descriptor, (line + "\n").encode("utf-8"))
             os.fsync(descriptor)
         finally:
@@ -382,7 +390,7 @@ class BackupManager:
                 raise ValueError("Backup restore mapping is incomplete")
             source = confined_path(self.codex_home, Path(source_text), "backup restore target")
             backup = confined_path(backup_dir, Path(backup_text), "backup restore source")
-            if not backup.is_file() or backup.is_symlink():
+            if not backup.is_file() or is_link_like(backup):
                 raise ValueError(f"Backup restore source is missing or unsafe: {backup}")
             validated.append((source, backup))
 
@@ -409,8 +417,8 @@ class BackupManager:
         return result
 
     def _safe_relative(self, source: Path) -> Path:
-        if source.is_symlink():
-            raise ValueError(f"Symbolic links are not supported: {source}")
+        if is_link_like(source):
+            raise ValueError(f"Links and junctions are not supported: {source}")
         try:
             relative = source.resolve().relative_to(self.codex_home.resolve())
         except ValueError as exc:
@@ -426,7 +434,7 @@ class BackupManager:
         finally:
             dst.close()
             src.close()
-        os.chmod(destination, PRIVATE_FILE_MODE)
+        set_private_mode(destination, PRIVATE_FILE_MODE)
 
     @staticmethod
     def _sqlite_integrity_check(db_path: Path) -> None:
@@ -536,7 +544,7 @@ class CodexStore:
                 {
                     "path": path,
                     "thread_count": count,
-                    "exists": Path(path).exists() if path.startswith("/") else None,
+                    "exists": Path(path).exists() if Path(path).is_absolute() else None,
                 }
                 for path, count in sorted(cwd_counts.items(), key=lambda item: (-item[1], item[0]))
             ],
@@ -655,7 +663,7 @@ class CodexStore:
             if self.config_path.exists():
                 source_key = str(self.config_path.resolve())
                 current_digest = file_sha256(self.config_path)
-                original_text[source_key] = self.config_path.read_text(encoding="utf-8")
+                original_text[source_key] = read_text_exact(self.config_path)
                 old_header = self._config_project_header(old_path)
                 new_header = self._config_project_header(new_path)
                 lines = original_text[source_key].splitlines(keepends=True)
@@ -673,7 +681,7 @@ class CodexStore:
             if self.global_state_path.exists():
                 source_key = str(self.global_state_path.resolve())
                 current_digest = file_sha256(self.global_state_path)
-                original_text[source_key] = self.global_state_path.read_text(encoding="utf-8")
+                original_text[source_key] = read_text_exact(self.global_state_path)
                 state = read_json(self.global_state_path, {})
                 original_state = json.loads(json.dumps(state, ensure_ascii=False))
                 for key in [
@@ -1161,7 +1169,7 @@ class CodexStore:
             except (OSError, ValueError) as exc:
                 unsafe_files.append({"path": raw_path, "reason": str(exc)})
                 continue
-            if not source.exists() or not source.is_file() or source.is_symlink():
+            if not source.exists() or not source.is_file() or is_link_like(source):
                 unsafe_files.append({"path": raw_path, "reason": "Not an existing file"})
                 continue
             item = self._describe_codex_item(source, source.stat())
@@ -1308,14 +1316,14 @@ class CodexStore:
                     continue
                 source.parent.mkdir(parents=True, exist_ok=True)
                 if source.exists() and overwrite:
-                    if not source.is_file() or source.is_symlink():
+                    if not source.is_file() or is_link_like(source):
                         raise ValueError(f"Unsafe restore conflict: {source}")
                     source.unlink()
                 shutil.move(str(trash), str(source))
                 original_mode = int(moved.get("original_mode", PRIVATE_FILE_MODE))
                 if original_mode < 0 or original_mode > 0o777:
                     raise ValueError(f"Invalid restore file mode: {source}")
-                os.chmod(source, original_mode)
+                set_private_mode(source, original_mode)
                 restored_files.append(
                     {
                         "trash": str(trash),
@@ -1370,7 +1378,7 @@ class CodexStore:
     def preview_permanently_delete_trash_bin_item(self, item_id: str) -> dict[str, Any]:
         item_dir = managed_item_path(self.trash_bin_dir, item_id, "Trash Bin item")
         manifest_path = item_dir / "manifest.json"
-        if not manifest_path.is_file() or manifest_path.is_symlink():
+        if not manifest_path.is_file() or is_link_like(manifest_path):
             raise FileNotFoundError(f"Trash Bin item not found: {item_id}")
         manifest = read_json(manifest_path, {})
         return {
@@ -1723,8 +1731,8 @@ class CodexStore:
             try:
                 if not self._is_inside_codex_home(source):
                     raise ValueError("Source must be inside codex_home")
-                if source.is_symlink():
-                    raise ValueError("Symbolic links are not archive candidates")
+                if is_link_like(source):
+                    raise ValueError("Links and junctions are not archive candidates")
                 destination = confined_path(archive_dir, destination, "archive destination")
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 shutil.move(str(source), str(destination))
@@ -2856,9 +2864,9 @@ class CodexStore:
                 source = Path(source_text)
                 if not source.exists() or not source.is_file():
                     continue
-                if source.is_symlink():
-                    raise ValueError(f"Refusing to move a symbolic link: {source}")
-                original_mode = source.stat().st_mode & 0o777
+                if is_link_like(source):
+                    raise ValueError(f"Refusing to move a link or junction: {source}")
+                original_mode = file_mode(source, PRIVATE_FILE_MODE)
                 destination = confined_path(
                     moved_dir,
                     moved_dir / self._trash_relative(source),
@@ -2866,7 +2874,7 @@ class CodexStore:
                 )
                 ensure_private_dir(destination.parent)
                 shutil.move(str(source), str(destination))
-                os.chmod(destination, PRIVATE_FILE_MODE)
+                set_private_mode(destination, PRIVATE_FILE_MODE)
                 moved_files.append(
                     {
                         "source": str(source),
@@ -3013,8 +3021,8 @@ class CodexStore:
         copied: list[dict[str, str]] = []
         snapshots_dir = item_dir / "metadata-snapshots"
         for source in self._trash_bin_metadata_sources(include_config=bool(preview.get("paths"))):
-            if source.is_symlink():
-                raise ValueError(f"Refusing to snapshot a symbolic link: {source}")
+            if is_link_like(source):
+                raise ValueError(f"Refusing to snapshot a link or junction: {source}")
             destination = confined_path(
                 snapshots_dir,
                 snapshots_dir / self._trash_relative(source),
@@ -3025,7 +3033,7 @@ class CodexStore:
                 BackupManager._sqlite_backup(source, destination)
             else:
                 shutil.copy2(source, destination)
-                os.chmod(destination, PRIVATE_FILE_MODE)
+                set_private_mode(destination, PRIVATE_FILE_MODE)
             copied.append({"source": str(source), "snapshot": str(destination)})
         return copied
 
@@ -3038,7 +3046,7 @@ class CodexStore:
                 "metadata restore target",
             )
             snapshot = Path(row["snapshot"])
-            if not snapshot.is_file() or snapshot.is_symlink():
+            if not snapshot.is_file() or is_link_like(snapshot):
                 continue
             source.parent.mkdir(parents=True, exist_ok=True)
             if source.suffix == ".sqlite":
@@ -3060,7 +3068,7 @@ class CodexStore:
             if not source_text:
                 continue
             source = Path(source_text)
-            if source.exists() and source.is_file() and not source.is_symlink():
+            if source.exists() and source.is_file() and not is_link_like(source):
                 digests[str(source.resolve())] = metadata_file_digest(source)
         return digests
 
@@ -3111,7 +3119,7 @@ class CodexStore:
                 Path(snapshot_text),
                 "Trash Bin metadata snapshot",
             )
-            if not snapshot.is_file() or snapshot.is_symlink():
+            if not snapshot.is_file() or is_link_like(snapshot):
                 raise ValueError(f"Metadata snapshot is missing or unsafe: {snapshot}")
             validated.append({"source": str(source), "snapshot": str(snapshot)})
         return validated
@@ -3144,7 +3152,7 @@ class CodexStore:
                         "reason": "No post-delete fingerprint is available for this Trash item.",
                     }
                 )
-            elif not source.is_file() or source.is_symlink():
+            elif not source.is_file() or is_link_like(source):
                 conflicts.append(
                     {"path": str(source), "reason": "The active metadata file is missing or unsafe."}
                 )
@@ -3177,7 +3185,7 @@ class CodexStore:
         )
         for source in dedupe_keep_order(sources):
             source = confined_path(self.codex_home, source, "restore guard source")
-            if not source.is_file() or source.is_symlink():
+            if not source.is_file() or is_link_like(source):
                 raise ValueError(f"Unsafe restore guard source: {source}")
             destination = confined_path(
                 guard_dir,
@@ -3189,7 +3197,7 @@ class CodexStore:
                 BackupManager._sqlite_backup(source, destination)
             else:
                 shutil.copy2(source, destination)
-                os.chmod(destination, PRIVATE_FILE_MODE)
+                set_private_mode(destination, PRIVATE_FILE_MODE)
             guard_rows.append(
                 {
                     "source": str(source),
@@ -3228,7 +3236,7 @@ class CodexStore:
                 Path(row["snapshot"]),
                 "Trash Bin metadata snapshot",
             )
-            if not snapshot.is_file() or snapshot.is_symlink():
+            if not snapshot.is_file() or is_link_like(snapshot):
                 raise ValueError(f"Metadata snapshot is missing or unsafe: {snapshot}")
             if metadata_file_digest(snapshot) != target_digest:
                 raise RuntimeError(f"Metadata snapshot fingerprint does not match: {snapshot}")
@@ -3244,7 +3252,7 @@ class CodexStore:
             else:
                 restored_digest = atomic_write_text_if_unchanged(
                     source,
-                    snapshot.read_text(encoding="utf-8"),
+                    read_text_exact(snapshot),
                     before_digest,
                 )
                 if restored_digest != target_digest:
@@ -3283,17 +3291,17 @@ class CodexStore:
                     Path(row["trash"]),
                     "failed restore Trash destination",
                 )
-                if trash.exists() or trash.is_symlink():
+                if trash.exists() or is_link_like(trash):
                     raise RuntimeError("Trash destination already exists")
                 if (
                     not restored.is_file()
-                    or restored.is_symlink()
+                    or is_link_like(restored)
                     or file_sha256(restored) != row.get("restored_digest")
                 ):
                     raise RuntimeError("restored file changed before rollback")
                 trash.parent.mkdir(parents=True, exist_ok=True)
                 shutil.move(str(restored), str(trash))
-                os.chmod(trash, PRIVATE_FILE_MODE)
+                set_private_mode(trash, PRIVATE_FILE_MODE)
                 restored_to_trash.append(str(trash))
             except Exception as exc:
                 conflicts.append(f"{row.get('restored')}: {exc}")
@@ -3330,7 +3338,7 @@ class CodexStore:
                 else:
                     reverted = atomic_write_text_if_unchanged(
                         source,
-                        guard_snapshot.read_text(encoding="utf-8"),
+                        read_text_exact(guard_snapshot),
                         row["restored_digest"],
                     )
                     if reverted != row["before_digest"]:
@@ -3373,7 +3381,7 @@ class CodexStore:
                     Path(row["snapshot"]),
                     "Trash Bin metadata rollback snapshot",
                 )
-                if not snapshot.is_file() or snapshot.is_symlink():
+                if not snapshot.is_file() or is_link_like(snapshot):
                     raise ValueError("rollback snapshot is missing or unsafe")
                 if metadata_file_digest(snapshot) != expected_pre:
                     raise RuntimeError("rollback snapshot does not match the preview fingerprint")
@@ -3386,11 +3394,11 @@ class CodexStore:
                         target_digest=expected_pre,
                     )
                 else:
-                    if not source.is_file() or source.is_symlink():
+                    if not source.is_file() or is_link_like(source):
                         raise ValueError("active metadata target is missing or unsafe")
                     restored_digest = atomic_write_text_if_unchanged(
                         source,
-                        snapshot.read_text(encoding="utf-8"),
+                        read_text_exact(snapshot),
                         expected_post,
                     )
                     if restored_digest != expected_pre:
@@ -3420,7 +3428,7 @@ class CodexStore:
             )
             if not trash.exists():
                 continue
-            if source.exists() or source.is_symlink():
+            if source.exists() or is_link_like(source):
                 conflicts.append(str(source))
                 continue
             original_mode = int(moved.get("original_mode", PRIVATE_FILE_MODE))
@@ -3429,7 +3437,7 @@ class CodexStore:
                 continue
             source.parent.mkdir(parents=True, exist_ok=True)
             shutil.move(str(trash), str(source))
-            os.chmod(source, original_mode)
+            set_private_mode(source, original_mode)
             restored.append({"trash": str(trash), "restored": str(source)})
         return {"restored": restored, "conflicts": conflicts}
 
@@ -3626,7 +3634,8 @@ class CodexStore:
 
     @staticmethod
     def _config_project_header(path: str) -> str:
-        return f'[projects."{path.replace(chr(34), chr(92) + chr(34))}"]'
+        escaped = path.replace("\\", "\\\\").replace(chr(34), chr(92) + chr(34))
+        return f'[projects."{escaped}"]'
 
     @staticmethod
     def _validate_relocation_paths(old_path: str, new_path: str) -> tuple[str, str]:
@@ -3639,8 +3648,10 @@ class CodexStore:
         if old_value == new_value:
             raise ValueError("Old and new workspace paths must be different")
         for value in (old_value, new_value):
-            if '"' in value or "\\" in value or any(ord(character) < 32 or ord(character) == 127 for character in value):
-                raise ValueError("Workspace paths cannot contain quotes, backslashes, or control characters")
+            if '"' in value or any(ord(character) < 32 or ord(character) == 127 for character in value):
+                raise ValueError("Workspace paths cannot contain quotes or control characters")
+            if os.name != "nt" and "\\" in value:
+                raise ValueError("Workspace paths cannot contain backslashes on this platform")
         return old_value, new_value
 
     def _remove_config_project_blocks(
@@ -3915,7 +3926,7 @@ class CodexStore:
                     ) and self._movable_codex_file(sibling):
                         candidates.append(sibling)
         sessions_root = self.codex_home / "sessions"
-        if thread_id and sessions_root.is_dir() and not sessions_root.is_symlink():
+        if thread_id and sessions_root.is_dir() and not is_link_like(sessions_root):
             for path in sessions_root.rglob("*"):
                 if (
                     path.is_file()
@@ -4038,7 +4049,7 @@ class CodexStore:
             if not source_text or not backup_text:
                 continue
             backup = confined_path(backup_dir, Path(backup_text), "operation backup source")
-            if not backup.is_file() or backup.is_symlink():
+            if not backup.is_file() or is_link_like(backup):
                 raise ValueError(f"Operation backup is missing or unsafe: {backup}")
             source = confined_path(self.codex_home, Path(source_text), "operation backup target")
             source.parent.mkdir(parents=True, exist_ok=True)
@@ -4384,8 +4395,8 @@ class CodexStore:
         if session_path and session_path.exists():
             sources.append(session_path)
         for source in sources:
-            if source.is_symlink():
-                raise ValueError(f"Refusing to back up a symbolic link: {source}")
+            if is_link_like(source):
+                raise ValueError(f"Refusing to back up a link or junction: {source}")
             relative = self._trash_relative(source)
             destination = confined_path(
                 files_dir,
@@ -4648,13 +4659,13 @@ class CodexStore:
 
     def _db_label(self, db_path: Path) -> str:
         try:
-            return str(db_path.relative_to(self.codex_home))
+            return db_path.relative_to(self.codex_home).as_posix()
         except ValueError:
-            return str(db_path)
+            return db_path.as_posix()
 
     def _trash_relative(self, source: Path) -> Path:
-        if source.is_symlink():
-            raise ValueError(f"Symbolic links are not supported: {source}")
+        if is_link_like(source):
+            raise ValueError(f"Links and junctions are not supported: {source}")
         try:
             relative = source.resolve().relative_to(self.codex_home.resolve())
         except ValueError as exc:

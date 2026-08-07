@@ -1,6 +1,6 @@
 # Clean My Codex
 
-Version `0.1.0`, created by [ENVOCS Studio](https://github.com/ethan3113).
+Version `0.3.0`, created by [ENVOCS Studio](https://github.com/ethan3113).
 
 ## Product
 
@@ -18,6 +18,7 @@ The safe action stays obvious, while technical evidence remains available on dem
 
 ## Operating Model
 
+- Opens as a native macOS Apple Silicon, macOS Intel, or Windows x64 application; the macOS source launcher remains available for development and compatibility.
 - Runs on this device at `127.0.0.1` with no hosted service.
 - Reads a selected Codex data root, normally `~/.codex`.
 - Defaults to dry-run and preview workflows.
@@ -53,6 +54,8 @@ The safe action stays obvious, while technical evidence remains available on dem
 ## Public Distribution Boundary
 
 The repository contains reusable source code, generic documentation, and synthetic fixtures only. Runtime data, screenshots, reports, raw session logs, database copies, credentials, and identifying workspace names are excluded by an allowlisted release process.
+
+Generated `.app` bundles are release artifacts, not repository source. Public app downloads must be separately audited, signed, notarized, and attached to the matching release tag.
 
 ## Accessibility
 

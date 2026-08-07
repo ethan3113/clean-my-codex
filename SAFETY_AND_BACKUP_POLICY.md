@@ -8,11 +8,13 @@ Never permanently delete directly from:
 ~/.codex
 ```
 
-All cleanup actions must first create a restorable Trash Bin item under:
+All cleanup actions must first create a restorable Trash Bin item under the active application-data directory:
 
 ```text
-<app-folder>/trash-bin
+<application-data>/trash-bin
 ```
+
+The standalone macOS app uses `~/Library/Application Support/Clean My Codex`; the Windows app uses `%LOCALAPPDATA%\Clean My Codex`. The source launcher uses the checked-out application folder unless configured otherwise. Existing source-launcher data is not migrated automatically; restore it with the source launcher until an explicit migration workflow is selected.
 
 Permanent delete is allowed only inside `trash-bin`.
 
@@ -64,13 +66,19 @@ Deleting a project from Codex removes Codex references and all related Codex cha
 
 It does not delete the actual project folder from `Documents`.
 
+## Operation Lifecycle Safety
+
+The desktop apps do not stop their service while a confirmed cleanup, restore, permanent-delete, report, or relocation request holds the operation lock. Quit sends an authenticated shutdown request, waits for the active operation to finish or roll back, rejects new mutations, and only then allows the native process to terminate.
+
 ## Restore Safety
 
 Restore uses the Trash Bin item only. It restores moved files, exact exported SQLite rows, and guarded text metadata snapshots. If original files already exist, restore refuses overwrite unless the caller explicitly allows overwrite.
 
 Each delete records post-delete fingerprints for protected metadata. Restore compares current files with those fingerprints and automatically blocks metadata replacement if Codex activity changed them. A safe restore first creates a restore guard inside the selected Trash Bin item.
 
-SQLite fingerprints include the active database state, including uncheckpointed write-ahead-log changes. Restore destinations are rejected when any path component is a symbolic link.
+SQLite fingerprints include the active database state, including uncheckpointed write-ahead-log changes. Restore destinations are rejected when any path component is a symbolic link or Windows directory junction.
+
+Windows can deny replacement while Codex holds an SQLite handle. The app does not bypass that lock: the operation fails, restores operation-owned changes where possible, and reports the result. Close Codex before retrying an apply operation.
 
 Failed operations roll back only changes whose current fingerprint still matches the value written by that operation. Newer external changes are never replaced by an old snapshot; the item is marked `failed-manual-restore-needed` instead.
 

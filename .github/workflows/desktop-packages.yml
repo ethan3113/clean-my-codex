@@ -1,0 +1,84 @@
+name: Desktop Packages
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "release/**"
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  macos:
+    name: macOS ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+      - name: Install build dependency
+        run: python -m pip install --disable-pip-version-check -r requirements-macos-build.txt
+      - name: Audit source and test
+        run: |
+          python scripts/audit_release.py . --allowlist PUBLIC_RELEASE_FILES.txt
+          python -m unittest discover -s tests
+      - name: Build architecture-specific app
+        env:
+          PYINSTALLER_PYTHON: python
+          CLEAN_MY_CODEX_BUILD_ARCH: ${{ matrix.arch }}
+        run: ./script/build_macos_app.sh
+      - name: Package development build
+        run: |
+          VERSION="$(python -c 'from clean_my_codex import APP_VERSION; print(APP_VERSION)')"
+          ARCHIVE="dist/Clean-My-Codex-macOS-${{ matrix.arch }}-v${VERSION}.zip"
+          ditto -c -k --sequesterRsrc --keepParent "dist/Clean My Codex.app" "$ARCHIVE"
+          shasum -a 256 "$ARCHIVE" > "$ARCHIVE.sha256"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: clean-my-codex-macos-${{ matrix.arch }}-unsigned-development
+          path: |
+            dist/Clean-My-Codex-macOS-${{ matrix.arch }}-v*.zip
+            dist/Clean-My-Codex-macOS-${{ matrix.arch }}-v*.zip.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+  windows:
+    name: Windows x64
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+        with:
+          dotnet-version: "8.0.x"
+      - name: Install build dependency
+        run: python -m pip install --disable-pip-version-check -r requirements-windows-build.txt
+      - name: Audit source and test
+        run: |
+          python scripts/audit_release.py . --allowlist PUBLIC_RELEASE_FILES.txt
+          python -m unittest discover -s tests
+      - name: Build and smoke test app
+        shell: pwsh
+        run: ./script/build_windows_app.ps1 -Python python
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: clean-my-codex-windows-x64-unsigned-development
+          path: |
+            dist/Clean-My-Codex-Windows-x64-v*.zip
+            dist/Clean-My-Codex-Windows-x64-v*.zip.sha256
+          if-no-files-found: error
+          retention-days: 14

@@ -49,6 +49,16 @@ GENERIC_SYSTEM_ACCOUNTS = {
 }
 
 
+def is_link_like(path: Path) -> bool:
+    try:
+        if path.is_symlink():
+            return True
+        is_junction = getattr(path, "is_junction", None)
+        return bool(is_junction and is_junction())
+    except OSError:
+        return True
+
+
 @dataclass(frozen=True)
 class Finding:
     path: str
@@ -152,8 +162,8 @@ def audit_tree(root: Path, ignore_git_metadata: bool = False) -> list[Finding]:
         relative_text = relative.as_posix()
         lower_parts = {part.lower() for part in relative.parts}
 
-        if path.is_symlink():
-            findings.append(Finding(relative_text, "symbolic links are not allowed"))
+        if is_link_like(path):
+            findings.append(Finding(relative_text, "links and junctions are not allowed"))
             continue
         blocked_parts = sorted(lower_parts.intersection(FORBIDDEN_PARTS))
         if blocked_parts:
@@ -214,7 +224,7 @@ def audit_publication_tree(root: Path, allowlist_path: Path) -> list[Finding]:
     actual = {
         path.relative_to(root).as_posix()
         for path in root.rglob("*")
-        if ".git" not in path.relative_to(root).parts and (path.is_file() or path.is_symlink())
+        if ".git" not in path.relative_to(root).parts and (path.is_file() or is_link_like(path))
     }
     findings = audit_tree(root, ignore_git_metadata=True)
     findings.extend(Finding(path, "file is not listed for public release") for path in sorted(actual - expected))

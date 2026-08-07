@@ -99,7 +99,9 @@ class CodexFolderCleanerTests(unittest.TestCase):
 
         self.assertEqual(preview["status"], "preview_only")
         self.assertEqual(preview["total_files"], 1)
-        self.assertIn("/.codex/config.toml.before-path-relocation-20260614-221215", preview["files"][0]["destination"])
+        destination = Path(preview["files"][0]["destination"])
+        self.assertEqual(destination.parent.name, ".codex")
+        self.assertEqual(destination.name, "config.toml.before-path-relocation-20260614-221215")
 
         blocked = self.store.archive_codex_files([target], confirmation="")
         self.assertEqual(blocked["status"], "confirmation_required")
@@ -176,7 +178,10 @@ class CodexFolderCleanerTests(unittest.TestCase):
         outside = self.root / "outside.tmp"
         outside.write_text("keep", encoding="utf-8")
         link = self.codex_home / "linked.tmp"
-        link.symlink_to(outside)
+        try:
+            link.symlink_to(outside)
+        except (NotImplementedError, OSError):
+            self.skipTest("Symbolic links are unavailable for this account")
         preview = self.store.preview_move_codex_files_to_trash_bin([str(link), str(outside)])
         self.assertEqual(len(preview["unsafe_files"]), 2)
         blocked = self.store.move_codex_files_to_trash_bin(

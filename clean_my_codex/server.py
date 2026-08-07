@@ -16,6 +16,13 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 from . import APP_NAME, APP_VERSION, CREATOR_NAME, CREATOR_URL, ISSUES_URL, REPOSITORY_URL
 from .core import CodexStore
+from .platform_security import (
+    PERMISSION_MODEL,
+    is_link_like,
+    private_directory,
+    private_file,
+    set_private_mode,
+)
 
 
 APP_HOME = Path(__file__).resolve().parents[1]
@@ -24,6 +31,7 @@ ALLOWED_BIND_HOSTS = {"127.0.0.1"}
 ALLOWED_REQUEST_HOSTS = {"127.0.0.1"}
 REQUEST_TOKEN_HEADER = "X-Clean-My-Codex-Token"
 PREVIEW_TTL_SECONDS = 10 * 60
+LIFECYCLE_SHUTDOWN_PATH = "/api/lifecycle/shutdown"
 
 
 class JsonError(Exception):
@@ -38,7 +46,9 @@ class CleanMyCodexHandler(BaseHTTPRequestHandler):
     static_dir: Path
     request_token: str
     operation_lock: threading.RLock
+    lifecycle_lock: threading.Lock
     preview_receipts: dict[str, dict[str, Any]]
+    shutting_down: bool
 
     server_version = f"CleanMyCodex/{APP_VERSION}"
 
@@ -70,8 +80,28 @@ class CleanMyCodexHandler(BaseHTTPRequestHandler):
             if not parsed.path.startswith("/api/"):
                 raise JsonError(HTTPStatus.NOT_FOUND, "Unknown endpoint")
             body = self._read_json_body()
+            handler = type(self)
+            is_shutdown_request = parsed.path == LIFECYCLE_SHUTDOWN_PATH
+            with handler.lifecycle_lock:
+                if is_shutdown_request:
+                    handler.shutting_down = True
+                elif handler.shutting_down:
+                    raise JsonError(
+                        HTTPStatus.SERVICE_UNAVAILABLE,
+                        "The app is closing; no new operation was started",
+                    )
             with self.operation_lock:
-                self._send_json(self._handle_post(parsed.path, body))
+                with handler.lifecycle_lock:
+                    if handler.shutting_down and not is_shutdown_request:
+                        raise JsonError(
+                            HTTPStatus.SERVICE_UNAVAILABLE,
+                            "The app is closing; no new operation was started",
+                        )
+                if is_shutdown_request:
+                    response = {"ok": True, "safe_to_terminate": True}
+                else:
+                    response = self._handle_post(parsed.path, body)
+                self._send_json(response)
         except JsonError as exc:
             self._send_json({"error": exc.message}, status=exc.status)
         except ValueError as exc:
@@ -102,6 +132,7 @@ class CleanMyCodexHandler(BaseHTTPRequestHandler):
                 "codex_home": str(self.store.codex_home),
                 "codex_home_exists": self.store.codex_home.exists(),
                 "dry_run_default": True,
+                "permission_model": PERMISSION_MODEL,
                 "report_exists": (self.store.app_home / "CODEX_DATA_STRUCTURE_REPORT.md").exists(),
             }
         if path == "/api/discovery":
@@ -467,7 +498,9 @@ def make_handler(
     BoundCleanMyCodexHandler.static_dir = static_dir
     BoundCleanMyCodexHandler.request_token = request_token or secrets.token_urlsafe(32)
     BoundCleanMyCodexHandler.operation_lock = threading.RLock()
+    BoundCleanMyCodexHandler.lifecycle_lock = threading.Lock()
     BoundCleanMyCodexHandler.preview_receipts = {}
+    BoundCleanMyCodexHandler.shutting_down = False
     return BoundCleanMyCodexHandler
 
 
@@ -477,38 +510,86 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--codex-home", default=str(DEFAULT_CODEX_HOME))
     parser.add_argument("--app-home", default=str(APP_HOME))
+    parser.add_argument("--static-dir")
     parser.add_argument("--token-file")
+    parser.add_argument("--ready-file")
     return parser
+
+
+def write_ready_file(path: Path, port: int) -> None:
+    path = path.expanduser()
+    if path.exists() or is_link_like(path):
+        raise SystemExit("The app ready file already exists or is unsafe")
+    if is_link_like(path.parent):
+        raise SystemExit("The app ready-file directory is unsafe")
+    parent = path.parent.resolve()
+    if not private_directory(parent):
+        raise SystemExit("The app ready-file directory is missing or unsafe")
+
+    path = parent / path.name
+    temporary = parent / f".{path.name}.{secrets.token_hex(8)}.tmp"
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+    descriptor = os.open(temporary, flags, 0o600)
+    try:
+        set_private_mode(temporary, 0o600)
+        payload = json.dumps({"port": int(port)}, separators=(",", ":")).encode("utf-8")
+        remaining = memoryview(payload)
+        while remaining:
+            written = os.write(descriptor, remaining)
+            if written <= 0:
+                raise OSError("Unable to publish the app ready file")
+            remaining = remaining[written:]
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+    try:
+        os.link(temporary, path)
+    except FileExistsError as exc:
+        raise SystemExit("The app ready file was replaced before publication") from exc
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def remove_ready_file(path: Path | None) -> None:
+    if path is None or not path.exists() or is_link_like(path):
+        return
+    if private_file(path):
+        path.unlink(missing_ok=True)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_arg_parser().parse_args(argv)
     if args.host not in ALLOWED_BIND_HOSTS:
         raise SystemExit("Clean My Codex only binds to 127.0.0.1")
-    os.umask(0o077)
+    if hasattr(os, "umask"):
+        os.umask(0o077)
     app_home = Path(args.app_home).expanduser().resolve()
     codex_home = Path(args.codex_home).expanduser().resolve()
-    static_dir = app_home / "static"
+    static_dir = (
+        Path(args.static_dir).expanduser().resolve()
+        if args.static_dir
+        else app_home / "static"
+    )
+    if not static_dir.is_dir() or not (static_dir / "index.html").is_file():
+        raise SystemExit("Clean My Codex could not find its interface files")
     store = CodexStore(codex_home, app_home)
     if args.token_file:
         token_file = Path(args.token_file).expanduser()
-        if token_file.is_symlink() or not token_file.is_file():
+        if not private_file(token_file):
             raise SystemExit("The app session file is missing or unsafe")
-        token_stat = token_file.stat()
-        if token_stat.st_uid != os.getuid():
-            raise SystemExit("The app session file must be owned by the current account")
-        if token_stat.st_mode & 0o077:
-            raise SystemExit("The app session file must be readable only by its owner")
         request_token = token_file.read_text(encoding="utf-8").strip()
         if len(request_token) < 32:
             raise SystemExit("The app session capability is invalid")
     else:
         request_token = os.environ.get("CLEAN_MY_CODEX_TOKEN") or secrets.token_urlsafe(32)
+    ready_file = Path(args.ready_file).expanduser() if args.ready_file else None
     server = ThreadingHTTPServer(
         (args.host, args.port),
         make_handler(store, static_dir, request_token=request_token),
     )
-    launch_url = f"http://{args.host}:{args.port}"
+    launch_url = f"http://{args.host}:{server.server_port}"
+    if ready_file is not None:
+        write_ready_file(ready_file, server.server_port)
     print(f"{APP_NAME} v{APP_VERSION}: {launch_url}")
     try:
         server.serve_forever()
@@ -516,6 +597,7 @@ def main(argv: list[str] | None = None) -> int:
         print("\nStopping Clean My Codex")
     finally:
         server.server_close()
+        remove_ready_file(ready_file)
     return 0
 
 

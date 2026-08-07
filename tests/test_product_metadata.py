@@ -27,7 +27,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class ProductMetadataTests(unittest.TestCase):
     def test_version_and_creator_have_one_canonical_source(self):
         self.assertEqual(APP_NAME, "Clean My Codex")
-        self.assertEqual(APP_VERSION, "0.1.0")
+        self.assertEqual(APP_VERSION, "0.3.0")
         self.assertEqual(__version__, APP_VERSION)
         self.assertEqual(CREATOR_NAME, "ENVOCS Studio")
         self.assertEqual(CREATOR_URL, "https://github.com/ethan3113")

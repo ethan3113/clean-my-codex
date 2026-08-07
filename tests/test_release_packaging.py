@@ -169,11 +169,15 @@ class ReleasePackagingTests(unittest.TestCase):
             real = root / "real"
             real.mkdir()
             (real / "file.txt").write_text("safe", encoding="utf-8")
-            (root / "linked").symlink_to(real, target_is_directory=True)
-            stage = root / "stage"
-            stage.mkdir()
-            with self.assertRaises(RuntimeError):
-                _copy_allowlisted(root, stage, [Path("linked/file.txt")])
+            try:
+                (root / "linked").symlink_to(real, target_is_directory=True)
+            except (NotImplementedError, OSError):
+                pass
+            else:
+                stage = root / "stage"
+                stage.mkdir()
+                with self.assertRaises(RuntimeError):
+                    _copy_allowlisted(root, stage, [Path("linked/file.txt")])
 
             allowlist = root / "allowlist.txt"
             allowlist.write_text("..\\..\\payload\n", encoding="utf-8")
@@ -209,11 +213,14 @@ class ReleasePackagingTests(unittest.TestCase):
                 build_release(fake_root, fake_root.parent)
 
     def test_github_actions_are_pinned_to_full_commits(self):
-        workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
-        uses = re.findall(r"^\s*- uses:\s*[^@\s]+@([^\s]+)", workflow, re.MULTILINE)
+        workflows = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in sorted((ROOT / ".github" / "workflows").glob("*.yml"))
+        )
+        uses = re.findall(r"^\s*- uses:\s*[^@\s]+@([^\s]+)", workflows, re.MULTILINE)
         self.assertTrue(uses)
         self.assertTrue(all(re.fullmatch(r"[0-9a-f]{40}", value) for value in uses))
-        self.assertIn("--allowlist PUBLIC_RELEASE_FILES.txt", workflow)
+        self.assertIn("--allowlist PUBLIC_RELEASE_FILES.txt", workflows)
 
 
 if __name__ == "__main__":
