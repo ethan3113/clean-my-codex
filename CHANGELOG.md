@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Added a protected, manual signed-release workflow that builds an existing tag without rewriting it.
+- Added fail-closed Developer ID signing, hardened runtime, notarization, stapling, Gatekeeper assessment, and signed macOS archive generation.
+- Added targeted Windows Authenticode signing with SHA-256 RFC 3161 timestamps and Windows policy verification.
+- Added exact signed-asset inventory and checksum validation before GitHub release upload or promotion.
+- Added signing credential, environment, and release-operation documentation without storing certificate material in the repository.
+
 ## 0.3.0 - 2026-08-07
 
 - Added separate macOS Apple Silicon, macOS Intel, and Windows x64 desktop package targets.

@@ -42,5 +42,6 @@ Do not attach credentials, `auth.json`, session JSONL content, SQLite databases,
 - A downloadable macOS app should be Developer ID signed and notarized before publication. Ad hoc signatures are for development builds only.
 - A downloadable Windows package should be Authenticode signed. Unsigned workflow artifacts are development evidence only.
 - Desktop packaging runs on the target operating system and validates the expected architecture; no cross-compiled executable is presented as verified.
+- Public signing credentials belong only in the protected `release-signing` GitHub environment. The signed workflow is manual, refuses non-`main` dispatches, and publishes nothing unless every platform and checksum passes.
 
 The app operates on evolving Codex internal formats. A schema it cannot prove safe is skipped and reported for review.

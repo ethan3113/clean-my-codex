@@ -11,6 +11,11 @@ MACOS_DIR="$CONTENTS/MacOS"
 RESOURCES_DIR="$CONTENTS/Resources"
 EXPECTED_ARCH="${CLEAN_MY_CODEX_BUILD_ARCH:-$(uname -m)}"
 
+if [[ -n "${CLEAN_MY_CODEX_SIGN_IDENTITY:-}" ]]; then
+  echo "Formal Developer ID signing is handled by script/sign_macos_release.sh after the development build."
+  exit 1
+fi
+
 case "$EXPECTED_ARCH" in
   arm64|x86_64) ;;
   aarch64) EXPECTED_ARCH="arm64" ;;
@@ -111,6 +116,7 @@ codesign --force --deep --sign - "$APP_BUNDLE"
 plutil -lint "$CONTENTS/Info.plist"
 codesign --verify --deep --strict --verbose=2 "$APP_BUNDLE"
 
+echo "Signing mode: ad hoc development"
 echo "Minimum macOS: $DETECTED_MINIMUM"
 echo "Architecture: $EXPECTED_ARCH ($MACHO_COUNT Mach-O files verified)"
 echo "$APP_BUNDLE"
