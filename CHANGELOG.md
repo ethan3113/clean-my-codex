@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.0 - 2026-08-07
+
+- Added separate macOS Apple Silicon, macOS Intel, and Windows x64 desktop package targets.
+- Added a native Windows WPF shell with WebView2, a bundled Python service, generated application icon, per-launch capability, strict loopback navigation, and graceful authenticated shutdown.
+- Added cross-platform filesystem safety helpers: POSIX owner-mode enforcement remains strict, while Windows uses profile ACL inheritance and rejects symbolic links and directory junctions.
+- Added architecture validation for every Mach-O in macOS packages and fail-closed architecture selection in the build script.
+- Added a Windows build pipeline with pinned PyInstaller and WebView2 versions, self-contained .NET publication, bundled notices, package smoke test, ZIP, and SHA-256 output.
+- Added cross-platform CI plus architecture-specific desktop artifact workflows on Apple Silicon, Intel, and Windows runners.
+- Marked all CI desktop artifacts as unsigned development builds; signed and notarized release binaries remain a separate publication gate.
+
 ## 0.2.0 - 2026-08-06
 
 - Added a standalone macOS application with a native AppKit window, embedded WebKit interface, original app icon, and bundled Python service.

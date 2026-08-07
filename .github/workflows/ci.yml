@@ -9,10 +9,21 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ["3.10", "3.13"]
+        include:
+          - name: Linux / Python 3.10
+            os: ubuntu-latest
+            python-version: "3.10"
+          - name: Linux / Python 3.13
+            os: ubuntu-latest
+            python-version: "3.13"
+          - name: Windows x64 / Python 3.13
+            os: windows-2025
+            python-version: "3.13"
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
@@ -26,8 +37,8 @@ jobs:
       - name: Test Python
         run: python -m unittest discover -s tests
       - name: Compile Python
-        run: python -m py_compile clean_my_codex/*.py scripts/*.py script/*.py
+        run: python -m compileall -q clean_my_codex scripts script
       - name: Check JavaScript
         run: node --check static/app.js
       - name: Build and audit release
-        run: python scripts/build_release.py --output-dir "$RUNNER_TEMP/release"
+        run: python scripts/build_release.py --output-dir "${{ runner.temp }}/release"

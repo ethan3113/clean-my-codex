@@ -176,7 +176,10 @@ class CodexFolderCleanerTests(unittest.TestCase):
         outside = self.root / "outside.tmp"
         outside.write_text("keep", encoding="utf-8")
         link = self.codex_home / "linked.tmp"
-        link.symlink_to(outside)
+        try:
+            link.symlink_to(outside)
+        except (NotImplementedError, OSError):
+            self.skipTest("Symbolic links are unavailable for this account")
         preview = self.store.preview_move_codex_files_to_trash_bin([str(link), str(outside)])
         self.assertEqual(len(preview["unsafe_files"]), 2)
         blocked = self.store.move_codex_files_to_trash_bin(

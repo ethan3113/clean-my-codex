@@ -3,6 +3,7 @@
 .github/ISSUE_TEMPLATE/config.yml
 .github/pull_request_template.md
 .github/workflows/ci.yml
+.github/workflows/desktop-packages.yml
 .gitignore
 
 # Product and governance
@@ -25,6 +26,7 @@ Clean My Codex.command
 run.command
 run.py
 requirements-macos-build.txt
+requirements-windows-build.txt
 
 # Native macOS application
 macos/AppIconGenerator.m
@@ -32,13 +34,25 @@ macos/CleanMyCodexApp/main.m
 macos/Info.plist
 script/build_and_run.sh
 script/build_macos_app.sh
+script/build_windows_app.ps1
+script/macos_bundle_architecture.py
 script/macos_bundle_minimum.py
 script/package_icns.py
+script/package_windows_icon.py
+
+# Native Windows application
+windows/CleanMyCodexApp/App.xaml
+windows/CleanMyCodexApp/App.xaml.cs
+windows/CleanMyCodexApp/CleanMyCodexApp.csproj
+windows/CleanMyCodexApp/MainWindow.xaml
+windows/CleanMyCodexApp/MainWindow.xaml.cs
+windows/CleanMyCodexApp/ServerSession.cs
 
 # Python application
 clean_my_codex/__init__.py
 clean_my_codex/__main__.py
 clean_my_codex/core.py
+clean_my_codex/platform_security.py
 clean_my_codex/server.py
 
 # Browser interface
@@ -57,5 +71,7 @@ tests/test_core_operations.py
 tests/test_folder_cleaner.py
 tests/test_macos_packaging.py
 tests/test_product_metadata.py
+tests/test_platform_security.py
 tests/test_release_packaging.py
 tests/test_server_integration.py
+tests/test_windows_packaging.py

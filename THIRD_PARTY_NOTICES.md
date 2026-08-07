@@ -2,7 +2,9 @@
 
 Clean My Codex includes bundled SVG icon geometry derived from [Lucide](https://github.com/lucide-icons/lucide). The project does not load icon code from a network service.
 
-Standalone macOS builds also contain a CPython runtime and a PyInstaller bootloader. The build copies their complete license texts into the application at `Contents/Resources/Documentation/PYTHON_LICENSE.txt` and `Contents/Resources/Documentation/PYINSTALLER_COPYING.txt`.
+Standalone macOS and Windows builds also contain a CPython runtime and a PyInstaller bootloader. Each package includes the complete license texts as `PYTHON_LICENSE.txt` and `PYINSTALLER_COPYING.txt` in its Documentation directory.
+
+Windows builds use Microsoft's WebView2 SDK and the installed Evergreen WebView2 Runtime. The package includes `WEBVIEW2_LICENSE.txt` and `WEBVIEW2_NOTICE.txt` from the pinned SDK package.
 
 ## CPython
 
@@ -11,6 +13,10 @@ CPython is distributed under the Python Software Foundation License and historic
 ## PyInstaller
 
 PyInstaller is licensed under GPL-2.0-or-later with its bootloader exception, which permits distributing applications built with PyInstaller. See `PYINSTALLER_COPYING.txt` inside the standalone application for the complete terms corresponding to the bundled bootloader.
+
+## Microsoft Edge WebView2
+
+The Windows desktop shell references `Microsoft.Web.WebView2` version `1.0.4078.44`. See `WEBVIEW2_LICENSE.txt` and `WEBVIEW2_NOTICE.txt` inside the Windows package for Microsoft's complete terms and notices.
 
 ## Lucide
 

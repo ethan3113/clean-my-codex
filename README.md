@@ -1,6 +1,6 @@
 # Clean My Codex
 
-Clean My Codex is a macOS utility for reviewing Codex chats, repairing moved workspace paths, and removing unwanted Codex records through a reversible Trash Bin.
+Clean My Codex is a desktop utility for reviewing Codex chats, repairing moved workspace paths, and removing unwanted Codex records through a reversible Trash Bin.
 
 Every destructive workflow follows the same model:
 
@@ -8,35 +8,50 @@ Every destructive workflow follows the same model:
 Preview -> Confirm -> Trash Bin -> Restore or Permanently Delete
 ```
 
-Version `0.2.0`
+Version `0.3.0`
 Created by [ENVOCS Studio](https://github.com/ethan3113)
 
 > Clean My Codex is an independent open-source project. It is not affiliated with, endorsed by, or supported by OpenAI.
 
-## Requirements
+## Desktop Packages
 
-- macOS
-- Codex with a data directory at `~/.codex`
+| Package | Platform | Runtime requirement |
+|---|---|---|
+| `macOS arm64` | Apple Silicon Mac | Bundled |
+| `macOS x86_64` | Intel Mac | Bundled |
+| `Windows x64` | Windows 10 1809 or newer | [Microsoft Edge WebView2 Evergreen Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/consumer/) |
 
-The standalone app bundles its runtime, so opening it does not require Python, a Terminal window, or package installation. Its architecture follows the Python used for packaging. The build scans every bundled Mach-O and records the true minimum macOS version in the final app. The source launcher remains available and requires Python 3.10 or newer.
+All packages expect Codex data in the platform account's `.codex` directory unless `CLEAN_MY_CODEX_HOME` is configured. Python is not required to open a packaged app.
 
 ## Open the macOS App
 
-Open `Clean My Codex.app` like any other macOS application. It creates its writable Trash Bin, operation logs, and reports under:
+Choose the package matching the Mac processor, then open `Clean My Codex.app` like any other application. It creates its writable Trash Bin, operation logs, and reports under:
 
 ```text
 ~/Library/Application Support/Clean My Codex
 ```
 
-The interface and service are contained inside the application bundle. Closing the app requests an authenticated graceful shutdown; if a confirmed operation is active, macOS waits for it to finish or roll back before stopping the loopback service.
+The build validates that every bundled Mach-O matches the package architecture and records the highest actual minimum macOS version. Closing the app requests an authenticated graceful shutdown; if a confirmed operation is active, macOS waits for it to finish or roll back before stopping the loopback service.
 
 Existing Trash Bin data created by the source launcher remains in the checkout and is not copied or moved automatically. Use the source launcher to restore those older items. New native-app operations use Application Support.
 
 Development builds are ad hoc signed for same-machine testing. A downloadable public build must be Developer ID signed and notarized before release.
 
+## Open the Windows App
+
+Extract the Windows x64 package and open `Clean My Codex.exe`. Writable data is stored under:
+
+```text
+%LOCALAPPDATA%\Clean My Codex
+```
+
+The Windows shell uses WebView2 only for the embedded interface. It starts the same bundled loopback service, limits navigation to the active loopback port and approved project links, and waits for an authenticated safe-shutdown response before closing. If WebView2 is absent, install Microsoft's Evergreen Runtime and reopen the app.
+
+Windows development packages are unsigned. A public executable should be Authenticode signed before release.
+
 ## Source Launcher
 
-After cloning the repository, either double-click `Clean My Codex.command` or run:
+After cloning on macOS, either double-click `Clean My Codex.command` or run:
 
 ```bash
 cd clean-my-codex
@@ -72,6 +87,7 @@ Deleting a project reference never deletes the actual project directory from Doc
 - SQLite updates use targeted transactions, exported rows, and integrity checks.
 - Unknown references are skipped and marked for review.
 - The server binds only to loopback and protects every data API with a per-launch capability that is not returned by the health endpoint.
+- POSIX packages enforce owner-only modes; Windows rejects links and junctions and relies on inherited per-account profile ACLs rather than treating `chmod` as Windows access control.
 - Trash restore fingerprints active metadata and blocks automatic restore if newer Codex activity changed any protected file.
 - `auth.json`, runtime databases, session logs, backups, and generated reports are excluded from public releases.
 
@@ -106,7 +122,7 @@ Run the complete verification suite:
 
 ```bash
 python3 -m unittest discover -s tests
-python3 -m py_compile clean_my_codex/*.py scripts/*.py script/*.py
+python3 -m compileall -q clean_my_codex scripts script
 node --check static/app.js
 python3 scripts/build_release.py --output-dir release --replace
 ```
@@ -119,9 +135,28 @@ build/pyinstaller-venv/bin/python -m pip install -r requirements-macos-build.txt
 PYINSTALLER_PYTHON="$PWD/build/pyinstaller-venv/bin/python" ./script/build_macos_app.sh
 ```
 
-The generated application is `dist/Clean My Codex.app`. The build uses Apple Command Line Tools, bundles the Python service, generates the app icon, derives the real minimum macOS version from all bundled binaries, validates the bundle, and applies an ad hoc development signature. Signing and notarization for public distribution are separate release steps.
+The generated application is `dist/Clean My Codex.app`. Set `CLEAN_MY_CODEX_BUILD_ARCH=arm64` or `x86_64` to require a specific architecture. The build uses Apple Command Line Tools, bundles the Python service, generates the app icon, derives the real minimum macOS version, validates every Mach-O architecture, and applies an ad hoc development signature.
 
-The release builder copies only files listed in `PUBLIC_RELEASE_FILES.txt`. It rejects symbolic links, unsafe versions, runtime folders, database and session formats, machine paths, email addresses, UUID-like session identifiers, and common credential patterns before creating the archive.
+Build Windows x64 from PowerShell on Windows with .NET 8 SDK:
+
+```powershell
+python -m venv build\pyinstaller-venv
+build\pyinstaller-venv\Scripts\python -m pip install -r requirements-windows-build.txt
+./script/build_windows_app.ps1 -Python build\pyinstaller-venv\Scripts\python
+```
+
+The Windows build creates a self-contained WPF shell, bundled PyInstaller service, generated icon, license bundle, smoke-tested package, ZIP, and SHA-256 file. PyInstaller does not cross-compile operating systems, so macOS packages are built on their matching Mac runners and Windows packages on a Windows runner.
+
+The `Desktop Packages` workflow builds separate Apple Silicon, Intel, and Windows x64 unsigned development artifacts on release branches. They are build evidence, not signed public releases.
+
+## Current Limits
+
+- Codex storage formats are not a public compatibility contract. Unknown tables or references are left untouched and reported for review.
+- On Windows, close Codex before applying a cleanup or relocation if Codex is holding an SQLite file lock. Clean My Codex fails and rolls back rather than forcing a locked replacement.
+- Existing Trash Bin items are not migrated automatically between the source launcher, macOS Application Support, and Windows application data.
+- Project cleanup removes Codex references and related chats; it never deletes the actual project directory.
+
+The release builder copies only files listed in `PUBLIC_RELEASE_FILES.txt`. It rejects links and junctions, unsafe versions, runtime folders, database and session formats, machine paths, email addresses, UUID-like session identifiers, and common credential patterns before creating the archive.
 
 For published releases, verify the ZIP checksum and confirm that the GitHub release points to the expected version tag. A checksum downloaded beside an archive detects transfer errors; the tag identifies the source commit the project published.
 

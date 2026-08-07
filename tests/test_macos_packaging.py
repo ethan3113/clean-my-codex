@@ -30,6 +30,16 @@ def load_minimum_version_module():
     return module
 
 
+def load_architecture_module():
+    path = ROOT / "script" / "macos_bundle_architecture.py"
+    spec = importlib.util.spec_from_file_location("macos_bundle_architecture", path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("Unable to load macOS architecture validator")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 class MacOSPackagingTests(unittest.TestCase):
     def test_native_app_metadata_and_launch_contract(self):
         with (ROOT / "macos" / "Info.plist").open("rb") as handle:
@@ -65,6 +75,9 @@ class MacOSPackagingTests(unittest.TestCase):
         self.assertIn("PYINSTALLER_COPYING.txt", build)
         self.assertIn("PYTHON_LICENSE.txt", build)
         self.assertIn("macos_bundle_minimum.py", build)
+        self.assertIn("macos_bundle_architecture.py", build)
+        self.assertIn('--target-architecture "$EXPECTED_ARCH"', build)
+        self.assertIn('-arch "$EXPECTED_ARCH"', build)
         self.assertIn("codesign --verify --deep --strict", build)
 
         build_and_run = (ROOT / "script" / "build_and_run.sh").read_text(encoding="utf-8")
@@ -107,6 +120,28 @@ class MacOSPackagingTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "Unable to inspect Mach-O"):
                     module.bundle_minimum(bundle, "13.0")
 
+    def test_macos_architecture_parser_and_mismatch_fail_closed(self):
+        module = load_architecture_module()
+        self.assertEqual(module.parse_architectures("arm64\n"), {"arm64"})
+        self.assertEqual(
+            module.parse_architectures("Architectures in the fat file: app are: x86_64 arm64"),
+            {"x86_64", "arm64"},
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            bundle = Path(temporary) / "Test.app"
+            bundle.mkdir()
+            binary = bundle / "binary"
+            binary.write_bytes(b"\xcf\xfa\xed\xfe" + (b"\0" * 32))
+            result = module.subprocess.CompletedProcess(
+                args=["lipo"], returncode=0, stdout="x86_64\n", stderr=""
+            )
+            with (
+                mock.patch.object(module.shutil, "which", return_value="/usr/bin/lipo"),
+                mock.patch.object(module.subprocess, "run", return_value=result),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "architecture mismatch"):
+                    module.validate_bundle_architecture(bundle, "arm64")
+
     def test_icns_packager_writes_standard_container(self):
         module = load_icns_module()
         png = b"\x89PNG\r\n\x1a\nsynthetic-test-payload"
@@ -138,6 +173,7 @@ class MacOSPackagingTests(unittest.TestCase):
             "macos/Info.plist",
             "script/build_and_run.sh",
             "script/build_macos_app.sh",
+            "script/macos_bundle_architecture.py",
             "script/macos_bundle_minimum.py",
             "script/package_icns.py",
             "tests/test_macos_packaging.py",

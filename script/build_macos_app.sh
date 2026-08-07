@@ -9,6 +9,14 @@ APP_BUNDLE="$DIST_ROOT/Clean My Codex.app"
 CONTENTS="$APP_BUNDLE/Contents"
 MACOS_DIR="$CONTENTS/MacOS"
 RESOURCES_DIR="$CONTENTS/Resources"
+EXPECTED_ARCH="${CLEAN_MY_CODEX_BUILD_ARCH:-$(uname -m)}"
+
+case "$EXPECTED_ARCH" in
+  arm64|x86_64) ;;
+  aarch64) EXPECTED_ARCH="arm64" ;;
+  amd64) EXPECTED_ARCH="x86_64" ;;
+  *) echo "Unsupported macOS build architecture: $EXPECTED_ARCH"; exit 1 ;;
+esac
 
 if ! "$PYTHON" -c 'import PyInstaller' >/dev/null 2>&1; then
   echo "PyInstaller is required to build the standalone macOS application."
@@ -17,6 +25,11 @@ if ! "$PYTHON" -c 'import PyInstaller' >/dev/null 2>&1; then
 fi
 
 VERSION="$($PYTHON -c 'from clean_my_codex import APP_VERSION; print(APP_VERSION)')"
+PYTHON_ARCH="$($PYTHON -c 'import platform; print(platform.machine())')"
+if [[ "$PYTHON_ARCH" != "$EXPECTED_ARCH" ]]; then
+  echo "Python architecture $PYTHON_ARCH does not match requested app architecture $EXPECTED_ARCH."
+  exit 1
+fi
 
 rm -rf "$BUILD_ROOT" "$APP_BUNDLE"
 mkdir -p "$BUILD_ROOT/server-spec" "$DIST_ROOT" "$MACOS_DIR" "$RESOURCES_DIR/app"
@@ -27,6 +40,7 @@ export PYINSTALLER_CONFIG_DIR="$BUILD_ROOT/pyinstaller-config"
   --clean \
   --onedir \
   --console \
+  --target-architecture "$EXPECTED_ARCH" \
   --name clean-my-codex-server \
   --distpath "$BUILD_ROOT/server-dist" \
   --workpath "$BUILD_ROOT/server-work" \
@@ -38,6 +52,7 @@ xcrun --sdk macosx clang \
   -fmodules \
   -fmodules-cache-path="$BUILD_ROOT/clang-module-cache" \
   -mmacosx-version-min=13.0 \
+  -arch "$EXPECTED_ARCH" \
   -framework Cocoa \
   -framework Security \
   -framework WebKit \
@@ -48,7 +63,7 @@ ditto "$ROOT/static" "$RESOURCES_DIR/app/static"
 mkdir -p "$RESOURCES_DIR/Documentation"
 cp "$ROOT/LICENSE" "$ROOT/README.md" "$ROOT/THIRD_PARTY_NOTICES.md" "$RESOURCES_DIR/Documentation/"
 PYINSTALLER_LICENSE="$($PYTHON -c 'from importlib.metadata import distribution; d=distribution("pyinstaller"); print(next(p.locate() for p in d.files if p.name == "COPYING.txt"))')"
-PYTHON_LICENSE="$($PYTHON -c 'import sys; from pathlib import Path; roots=(Path(sys.base_prefix), *Path(sys.base_prefix).parents); print(next(root / "LICENSE" for root in roots if (root / "LICENSE").is_file()))')"
+PYTHON_LICENSE="$($PYTHON -c 'import sys; from pathlib import Path; roots=(Path(sys.base_prefix), *Path(sys.base_prefix).parents); names=("LICENSE.txt", "LICENSE"); print(next(root / name for root in roots for name in names if (root / name).is_file()))')"
 cp "$PYINSTALLER_LICENSE" "$RESOURCES_DIR/Documentation/PYINSTALLER_COPYING.txt"
 cp "$PYTHON_LICENSE" "$RESOURCES_DIR/Documentation/PYTHON_LICENSE.txt"
 cp "$ROOT/macos/Info.plist" "$CONTENTS/Info.plist"
@@ -62,6 +77,7 @@ xcrun --sdk macosx clang \
   -fmodules \
   -fmodules-cache-path="$BUILD_ROOT/clang-module-cache" \
   -mmacosx-version-min=13.0 \
+  -arch "$EXPECTED_ARCH" \
   -framework Cocoa \
   "$ROOT/macos/AppIconGenerator.m" \
   -o "$BUILD_ROOT/AppIconGenerator"
@@ -88,6 +104,7 @@ done
 DECLARED_MINIMUM="$(plutil -extract LSMinimumSystemVersion raw "$CONTENTS/Info.plist")"
 DETECTED_MINIMUM="$($PYTHON "$ROOT/script/macos_bundle_minimum.py" "$APP_BUNDLE" --floor "$DECLARED_MINIMUM")"
 plutil -replace LSMinimumSystemVersion -string "$DETECTED_MINIMUM" "$CONTENTS/Info.plist"
+MACHO_COUNT="$($PYTHON "$ROOT/script/macos_bundle_architecture.py" "$APP_BUNDLE" --expected "$EXPECTED_ARCH")"
 
 xattr -cr "$APP_BUNDLE"
 codesign --force --deep --sign - "$APP_BUNDLE"
@@ -95,4 +112,5 @@ plutil -lint "$CONTENTS/Info.plist"
 codesign --verify --deep --strict --verbose=2 "$APP_BUNDLE"
 
 echo "Minimum macOS: $DETECTED_MINIMUM"
+echo "Architecture: $EXPECTED_ARCH ($MACHO_COUNT Mach-O files verified)"
 echo "$APP_BUNDLE"

@@ -10,6 +10,7 @@ from http.server import ThreadingHTTPServer
 from pathlib import Path
 
 from clean_my_codex.core import CodexStore
+from clean_my_codex.platform_security import POSIX_PERMISSIONS
 from clean_my_codex.server import (
     LIFECYCLE_SHUTDOWN_PATH,
     REQUEST_TOKEN_HEADER,
@@ -296,8 +297,9 @@ class ServerLaunchContractTests(unittest.TestCase):
             self.assertGreater(len(visible_while_writing), 1)
             self.assertFalse(any(visible_while_writing))
             self.assertEqual(list(private_dir.glob("*.tmp")), [])
-            self.assertEqual(ready_file.stat().st_mode & 0o777, 0o600)
-            self.assertEqual(ready_file.stat().st_uid, os.getuid())
+            if POSIX_PERMISSIONS:
+                self.assertEqual(ready_file.stat().st_mode & 0o777, 0o600)
+                self.assertEqual(ready_file.stat().st_uid, os.getuid())
             with self.assertRaises(SystemExit):
                 write_ready_file(ready_file, 12345)
 

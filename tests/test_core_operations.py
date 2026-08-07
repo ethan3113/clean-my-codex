@@ -12,6 +12,7 @@ from clean_my_codex.core import (
     create_state_db,
     managed_item_path,
 )
+from clean_my_codex.platform_security import POSIX_PERMISSIONS
 
 
 OLD_PATH = "/workspaces/example/old-folder"
@@ -578,7 +579,8 @@ class CleanMyCodexCoreTests(unittest.TestCase):
         self.assertEqual(row_count, 1)
 
     def test_delete_chat_to_trash_bin_moves_metadata_and_restores(self):
-        os.chmod(self.session_path, 0o644)
+        if POSIX_PERMISSIONS:
+            os.chmod(self.session_path, 0o644)
         result = self.store.delete_chat_to_trash_bin(["thread-1"], confirmation="DELETE CHAT")
 
         self.assertEqual(result["status"], "trashed")
@@ -589,13 +591,14 @@ class CleanMyCodexCoreTests(unittest.TestCase):
         self.assertTrue((trash_dir / "manifest.json").exists())
         self.assertTrue((trash_dir / "RESTORE_REPORT.md").exists())
         self.assertTrue((trash_dir / "sqlite_rows.json").exists())
-        self.assertTrue(
-            all(
-                path.stat().st_mode & 0o777 == 0o600
-                for path in trash_dir.rglob("*")
-                if path.is_file()
+        if POSIX_PERMISSIONS:
+            self.assertTrue(
+                all(
+                    path.stat().st_mode & 0o777 == 0o600
+                    for path in trash_dir.rglob("*")
+                    if path.is_file()
+                )
             )
-        )
         manifest = json.loads((trash_dir / "manifest.json").read_text(encoding="utf-8"))
         self.assertEqual(manifest["item_type"], "chat")
         self.assertEqual(manifest["confirmation_required"], "RESTORE FROM TRASH")
@@ -625,7 +628,8 @@ class CleanMyCodexCoreTests(unittest.TestCase):
         self.assertEqual(restored["status"], "restored")
         self.assertIn("sqlite-rows", {row["kind"] for row in restored["restored_metadata"]})
         self.assertTrue(self.session_path.exists())
-        self.assertEqual(self.session_path.stat().st_mode & 0o777, 0o644)
+        if POSIX_PERMISSIONS:
+            self.assertEqual(self.session_path.stat().st_mode & 0o777, 0o644)
         self.assertTrue(self.sidecar_path.exists())
         con = sqlite3.connect(self.codex_home / "state_5.sqlite")
         restored_count = con.execute(
@@ -703,7 +707,10 @@ class CleanMyCodexCoreTests(unittest.TestCase):
     def test_trash_bin_restore_rejects_symlink_destination(self):
         result = self.store.delete_chat_to_trash_bin(["thread-1"], confirmation="DELETE CHAT")
         config_before = (self.codex_home / "config.toml").read_text(encoding="utf-8")
-        self.session_path.symlink_to(self.codex_home / "config.toml")
+        try:
+            self.session_path.symlink_to(self.codex_home / "config.toml")
+        except (NotImplementedError, OSError):
+            self.skipTest("Symbolic links are unavailable for this account")
 
         with self.assertRaises(ValueError):
             self.store.restore_trash_bin_item(
@@ -940,6 +947,8 @@ class CleanMyCodexCoreTests(unittest.TestCase):
             self.assertEqual(payload, b"\x00\x01fixture")
 
     def test_runtime_outputs_are_private_and_atomic_writes_preserve_active_mode(self):
+        if not POSIX_PERMISSIONS:
+            self.skipTest("POSIX mode bits are not Windows ACLs")
         original_umask = os.umask(0o022)
         try:
             private_path = self.root / "new-runtime.json"
@@ -1036,7 +1045,10 @@ class CleanMyCodexCoreTests(unittest.TestCase):
             self.store._trash_relative(escaped)
 
         link = self.codex_home / "sessions" / "linked.jsonl"
-        link.symlink_to(self.session_path)
+        try:
+            link.symlink_to(self.session_path)
+        except (NotImplementedError, OSError):
+            self.skipTest("Symbolic links are unavailable for this account")
         with self.assertRaises(ValueError):
             self.store._trash_relative(link)
 
