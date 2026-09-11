@@ -1,7 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.3.1 - 2026-09-11
 
+- Documented and exposed the account-independent runtime contract: no Clean My Codex login, OpenAI API key, or separate ChatGPT sign-in is required.
+- Added architecture-specific macOS preview DMGs for Apple Silicon and Intel, including app/version/architecture/signature verification and SHA-256 records.
+- Added a drag-to-Applications disk image with clear first-launch trust guidance for the explicitly unsigned preview channel.
 - Added a protected, manual signed-release workflow that builds an existing tag without rewriting it.
 - Added fail-closed Developer ID signing, hardened runtime, notarization, stapling, Gatekeeper assessment, and signed macOS archive generation.
 - Added targeted Windows Authenticode signing with SHA-256 RFC 3161 timestamps and Windows policy verification.

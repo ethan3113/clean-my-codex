@@ -46,6 +46,7 @@ script/build_windows_app.ps1
 script/macos_bundle_architecture.py
 script/macos_bundle_minimum.py
 script/package_icns.py
+script/package_macos_preview.py
 script/package_windows_icon.py
 script/sign_macos_release.sh
 script/sign_windows_release.ps1

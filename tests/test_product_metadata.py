@@ -10,6 +10,7 @@ from clean_my_codex import (
     CREATOR_NAME,
     CREATOR_URL,
     ISSUES_URL,
+    REQUIRES_ACCOUNT_SIGN_IN,
     REPOSITORY_URL,
     __version__,
 )
@@ -27,13 +28,18 @@ ROOT = Path(__file__).resolve().parents[1]
 class ProductMetadataTests(unittest.TestCase):
     def test_version_and_creator_have_one_canonical_source(self):
         self.assertEqual(APP_NAME, "Clean My Codex")
-        self.assertEqual(APP_VERSION, "0.3.0")
+        self.assertEqual(APP_VERSION, "0.3.1")
         self.assertEqual(__version__, APP_VERSION)
         self.assertEqual(CREATOR_NAME, "ENVOCS Studio")
         self.assertEqual(CREATOR_URL, "https://github.com/ethan3113")
         self.assertEqual(REPOSITORY_URL, "https://github.com/ethan3113/clean-my-codex")
         self.assertEqual(ISSUES_URL, f"{REPOSITORY_URL}/issues/new?template=bug_report.yml")
+        self.assertFalse(REQUIRES_ACCOUNT_SIGN_IN)
         self.assertEqual(CleanMyCodexHandler.server_version, f"CleanMyCodex/{APP_VERSION}")
+        html = (ROOT / "static" / "index.html").read_text(encoding="utf-8")
+        script = (ROOT / "static" / "app.js").read_text(encoding="utf-8")
+        self.assertIn(f'id="app-version">v{APP_VERSION}</span>', html)
+        self.assertIn(f'meta.version || "{APP_VERSION}"', script)
 
     def test_logo_is_valid_svg(self):
         logo = ROOT / "static" / "logo.svg"
@@ -136,6 +142,7 @@ class ProductMetadataTests(unittest.TestCase):
             handler.headers = {REQUEST_TOKEN_HEADER: "test-token"}
             protected = handler._handle_get("/api/health", {})
             self.assertIn("app", protected)
+            self.assertFalse(protected["app"]["requires_account_sign_in"])
             self.assertIn("app_home", protected)
             self.assertNotIn("request_token", protected)
 

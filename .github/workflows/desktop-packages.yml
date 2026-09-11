@@ -45,12 +45,19 @@ jobs:
           ARCHIVE="dist/Clean-My-Codex-macOS-${{ matrix.arch }}-v${VERSION}.zip"
           ditto -c -k --sequesterRsrc --keepParent "dist/Clean My Codex.app" "$ARCHIVE"
           shasum -a 256 "$ARCHIVE" > "$ARCHIVE.sha256"
+          python script/package_macos_preview.py \
+            --app "dist/Clean My Codex.app" \
+            --output-dir dist \
+            --version "$VERSION" \
+            --arch "${{ matrix.arch }}"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: clean-my-codex-macos-${{ matrix.arch }}-unsigned-development
           path: |
             dist/Clean-My-Codex-macOS-${{ matrix.arch }}-v*.zip
             dist/Clean-My-Codex-macOS-${{ matrix.arch }}-v*.zip.sha256
+            dist/Clean-My-Codex-macOS-${{ matrix.arch }}-v*-unsigned-preview.dmg
+            dist/Clean-My-Codex-macOS-${{ matrix.arch }}-v*-unsigned-preview.dmg.sha256
           if-no-files-found: error
           retention-days: 14
 

@@ -103,6 +103,24 @@ class ServerIntegrationTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(payload, {"chats": []})
 
+    def test_codex_data_access_does_not_require_an_auth_file(self):
+        self.assertFalse((self.codex_home / "auth.json").exists())
+        status, _, health = self.request(
+            "GET",
+            "/api/health",
+            headers={REQUEST_TOKEN_HEADER: self.token},
+        )
+        self.assertEqual(status, 200)
+        self.assertFalse(health["app"]["requires_account_sign_in"])
+
+        status, _, discovery = self.request(
+            "GET",
+            "/api/discovery",
+            headers={REQUEST_TOKEN_HEADER: self.token},
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(discovery["chat_count"], 0)
+
     def test_host_and_origin_checks_reject_non_loopback_requests(self):
         connection = http.client.HTTPConnection("127.0.0.1", self.port, timeout=5)
         connection.putrequest("GET", "/api/health", skip_host=True)

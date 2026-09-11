@@ -14,7 +14,15 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 
-from . import APP_NAME, APP_VERSION, CREATOR_NAME, CREATOR_URL, ISSUES_URL, REPOSITORY_URL
+from . import (
+    APP_NAME,
+    APP_VERSION,
+    CREATOR_NAME,
+    CREATOR_URL,
+    ISSUES_URL,
+    REPOSITORY_URL,
+    REQUIRES_ACCOUNT_SIGN_IN,
+)
 from .core import CodexStore
 from .platform_security import (
     PERMISSION_MODEL,
@@ -127,6 +135,7 @@ class CleanMyCodexHandler(BaseHTTPRequestHandler):
                     "creator_url": CREATOR_URL,
                     "repository_url": REPOSITORY_URL,
                     "issues_url": ISSUES_URL,
+                    "requires_account_sign_in": REQUIRES_ACCOUNT_SIGN_IN,
                 },
                 "app_home": str(self.store.app_home),
                 "codex_home": str(self.store.codex_home),

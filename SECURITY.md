@@ -36,6 +36,7 @@ Do not attach credentials, `auth.json`, session JSONL content, SQLite databases,
 - Native-app Quit is deferred behind the server's operation lock; no new mutation is accepted after the authenticated shutdown handshake begins.
 - Every apply request consumes a short-lived, one-time preview receipt bound to the exact action, targets, and current preview.
 - Active Codex records are never permanently deleted directly.
+- The app has no account service and does not require an OpenAI API key or separate ChatGPT sign-in. `auth.json` is explicitly excluded from scanning, copying, and mutation.
 - The public release builder uses an explicit allowlist and rejects runtime data formats and common secrets.
 - Trash restore uses exact SQLite row exports and guarded text snapshots, and blocks restoration when protected metadata changed after deletion.
 - Published archives should be tied to a verified signed repository tag; a side-by-side checksum alone is not an authenticity guarantee.

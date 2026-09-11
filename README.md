@@ -8,7 +8,7 @@ Every destructive workflow follows the same model:
 Preview -> Confirm -> Trash Bin -> Restore or Permanently Delete
 ```
 
-Version `0.3.0`
+Version `0.3.1`
 Created by [ENVOCS Studio](https://github.com/ethan3113)
 
 > Clean My Codex is an independent open-source project. It is not affiliated with, endorsed by, or supported by OpenAI.
@@ -23,6 +23,8 @@ Created by [ENVOCS Studio](https://github.com/ethan3113)
 
 All packages expect Codex data in the platform account's `.codex` directory unless `CLEAN_MY_CODEX_HOME` is configured. Python is not required to open a packaged app.
 
+Clean My Codex has no account system. It does not require a Clean My Codex login, OpenAI API key, or separate ChatGPT sign-in. Each installation reads the compatible Codex data directory belonging to the signed-in operating-system account; it is not tied to the developer's Codex data or credentials.
+
 ## Open the macOS App
 
 Choose the package matching the Mac processor, then open `Clean My Codex.app` like any other application. It creates its writable Trash Bin, operation logs, and reports under:
@@ -35,7 +37,9 @@ The build validates that every bundled Mach-O matches the package architecture a
 
 Existing Trash Bin data created by the source launcher remains in the checkout and is not copied or moved automatically. Use the source launcher to restore those older items. New native-app operations use Application Support.
 
-Development builds are ad hoc signed for same-machine testing. A downloadable public build must be Developer ID signed and notarized before release.
+Development builds are ad hoc signed. A stable downloadable public build must be Developer ID signed and notarized before release.
+
+Unsigned open-source preview DMGs are architecture-specific and contain the same standalone app. After opening the DMG, drag **Clean My Codex.app** into **Applications**. Because the preview is not Apple notarized, the first launch may require Control-clicking the app and choosing **Open**. Later launches are ordinary double-click launches.
 
 ## Open the Windows App
 
@@ -148,6 +152,8 @@ build\pyinstaller-venv\Scripts\python -m pip install -r requirements-windows-bui
 The Windows build creates a self-contained WPF shell, bundled PyInstaller service, generated icon, license bundle, smoke-tested package, ZIP, and SHA-256 file. PyInstaller does not cross-compile operating systems, so macOS packages are built on their matching Mac runners and Windows packages on a Windows runner.
 
 The `Desktop Packages` workflow builds separate Apple Silicon, Intel, and Windows x64 unsigned development artifacts on release branches. They are build evidence, not signed public releases.
+
+For open-source testing, the same workflow also creates explicitly named `unsigned-preview.dmg` images for Apple Silicon and Intel. These can be attached only to a GitHub pre-release with the unsigned/not-notarized limitation kept visible; they are not a substitute for the protected signed-release workflow.
 
 The manual `Signed Release` workflow builds an existing source tag, signs and notarizes both macOS architectures, Authenticode signs the Windows package, verifies all checksums, and then updates the matching GitHub release. It uses only credentials stored in the protected `release-signing` environment and defaults to keeping the release in pre-release state. See [SIGNING_AND_RELEASE.md](SIGNING_AND_RELEASE.md).
 
