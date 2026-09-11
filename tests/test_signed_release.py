@@ -51,6 +51,7 @@ class SignedReleaseTests(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertIn("workflow_dispatch:", workflow)
+        self.assertIn('default: "v0.3.1"', workflow)
         self.assertNotIn("pull_request_target:", workflow)
         self.assertNotIn("\n  push:", workflow)
         self.assertNotIn("\n  pull_request:", workflow)

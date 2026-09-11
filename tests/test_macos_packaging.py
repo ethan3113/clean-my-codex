@@ -50,13 +50,40 @@ def load_runtime_license_module():
     return module
 
 
+def load_preview_packager_module():
+    path = ROOT / "script" / "package_macos_preview.py"
+    spec = importlib.util.spec_from_file_location("package_macos_preview", path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("Unable to load macOS preview packager")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 class MacOSPackagingTests(unittest.TestCase):
+    def test_preview_package_name_is_versioned_and_architecture_specific(self):
+        module = load_preview_packager_module()
+        self.assertEqual(
+            module.preview_asset_name("0.3.1", "arm64"),
+            "Clean-My-Codex-macOS-arm64-v0.3.1-unsigned-preview.dmg",
+        )
+        self.assertEqual(
+            module.preview_asset_name("0.3.1", "x86_64"),
+            "Clean-My-Codex-macOS-x86_64-v0.3.1-unsigned-preview.dmg",
+        )
+        with self.assertRaises(ValueError):
+            module.preview_asset_name("../0.3.1", "arm64")
+        with self.assertRaises(ValueError):
+            module.preview_asset_name("0.3.1", "universal")
+
     def test_native_app_metadata_and_launch_contract(self):
         with (ROOT / "macos" / "Info.plist").open("rb") as handle:
             info = plistlib.load(handle)
         self.assertEqual(info["CFBundleName"], "Clean My Codex")
         self.assertEqual(info["CFBundleExecutable"], "Clean My Codex")
         self.assertEqual(info["CFBundleIdentifier"], "studio.envocs.cleanmycodex")
+        self.assertEqual(info["CFBundleShortVersionString"], "0.3.1")
+        self.assertEqual(info["CFBundleVersion"], "0.3.1")
         self.assertEqual(info["LSMinimumSystemVersion"], "13.0")
         self.assertTrue(info["LSMultipleInstancesProhibited"])
 
@@ -203,6 +230,7 @@ class MacOSPackagingTests(unittest.TestCase):
             "script/macos_bundle_architecture.py",
             "script/macos_bundle_minimum.py",
             "script/package_icns.py",
+            "script/package_macos_preview.py",
             "tests/test_macos_packaging.py",
         }
         self.assertTrue(expected.issubset(entries))

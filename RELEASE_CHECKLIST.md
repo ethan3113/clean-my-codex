@@ -3,6 +3,7 @@
 ## Source
 
 - [ ] `APP_VERSION` matches the intended tag.
+- [ ] The app does not require a Clean My Codex account, OpenAI API key, or separate ChatGPT sign-in.
 - [ ] Product name is `Clean My Codex` everywhere.
 - [ ] Repository and issue links target `ethan3113/clean-my-codex`.
 - [ ] Navigation motion completes in one second and honors reduced motion.
@@ -24,6 +25,7 @@
 ## macOS App
 
 - [ ] Build `Clean My Codex.app` with the pinned packaging requirement.
+- [ ] For a preview release, build and mount-check both architecture-specific `unsigned-preview.dmg` images.
 - [ ] Verify the app opens through LaunchServices without a Terminal window.
 - [ ] Verify Quit stops the bundled loopback service and removes temporary session files.
 - [ ] Verify Quit waits for a blocked synthetic mutation to complete before the service exits.

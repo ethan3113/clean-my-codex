@@ -234,7 +234,7 @@ function setProductMeta(meta = {}) {
   state.productName = productName;
   const nameNode = $("app-name");
   if (nameNode) nameNode.textContent = productName;
-  const version = String(meta.version || "0.3.0").replace(/^v/i, "");
+  const version = String(meta.version || "0.3.1").replace(/^v/i, "");
   const versionNode = $("app-version");
   if (versionNode) versionNode.textContent = `v${version}`;
 

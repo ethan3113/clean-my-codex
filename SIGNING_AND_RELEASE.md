@@ -56,7 +56,7 @@ Third-party .NET, WebView2, and Python runtime files are not re-signed. SignTool
 
 ## Run a Signed Release
 
-1. Create the source release and tag, such as `v0.3.0`.
+1. Create the source release and tag, such as `v0.3.1`.
 2. Open **Actions**, select **Signed Release**, and run it from `main`.
 3. Enter the existing tag.
 4. Leave **promote release** disabled for the first signed build.
@@ -76,14 +76,14 @@ APPLE_API_KEY_ID="..." \
 APPLE_API_ISSUER_ID="..." \
 ./script/sign_macos_release.sh \
   "dist/Clean My Codex.app" \
-  "dist/Clean-My-Codex-macOS-arm64-v0.3.0.zip"
+  "dist/Clean-My-Codex-macOS-arm64-v0.3.1.zip"
 ```
 
 ```powershell
 ./script/sign_windows_release.ps1 `
   -PackageRoot "dist\Clean My Codex Windows x64" `
   -CertificateThumbprint "CERTIFICATE_THUMBPRINT" `
-  -OutputArchive "dist\Clean-My-Codex-Windows-x64-v0.3.0.zip"
+  -OutputArchive "dist\Clean-My-Codex-Windows-x64-v0.3.1.zip"
 ```
 
 The scripts intentionally stop when a required identity, private key, timestamp, notarization result, or final verification is unavailable.

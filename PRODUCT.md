@@ -1,6 +1,8 @@
 # Clean My Codex
 
-Version `0.3.0`, created by [ENVOCS Studio](https://github.com/ethan3113).
+Version `0.3.1`, created by [ENVOCS Studio](https://github.com/ethan3113).
+
+Clean My Codex does not operate an account service and does not require an OpenAI API key or separate ChatGPT sign-in. It works against the compatible `.codex` data directory selected for the current installation.
 
 ## Product
 
